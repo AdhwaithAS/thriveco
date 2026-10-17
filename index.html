@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THRIVE&CO - Healthcare Resource Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ACADEMIC BANNER -->
+  <aside class="academic-ribbon">
+    <div>
+      🎓 <strong>Marian College of Engineering</strong> — Department of Computer Science &amp; Engineering | Academic Year 2026–2027
+    </div>
+    <div class="team-tag">
+      Project Team: Nidha Nafeer • Harinandana K • Asher Satyadas • Suryanarayanan SD
+    </div>
+  </aside>
+
+  <!-- MAIN HEADER -->
+  <header class="main-header">
+    <div class="brand-section">
+      <div class="brand-logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M2 12h20"/>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <h1>THRIVE<span>&amp;CO</span></h1>
+        <p>Healthcare Resource Management System</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div style="font-size: 12px; color: var(--slate-500); display: flex; align-items: center; gap: 6px;">
+        <span>🕒</span> <span id="liveClock">Loading time...</span>
+      </div>
+
+      <!-- ROLE SWITCHER (Chapter 3 & 8) -->
+      <div class="role-badge-box">
+        <span class="role-label">Role:</span>
+        <select id="userRoleSelect" class="role-select">
+          <option value="System Admin" selected>👑 System Admin</option>
+          <option value="Hospital Staff">🏥 Hospital Staff</option>
+          <option value="Pharmacy Staff">💊 Pharmacy Staff</option>
+          <option value="Blood Bank Officer">🩸 Blood Bank Officer</option>
+          <option value="Emergency Search User">🔍 Emergency Search User</option>
+        </select>
+      </div>
+
+      <div class="quick-action-btns">
+        <button class="btn btn-primary btn-sm" onclick="window.switchTabToEmergency()">
+          🚨 Emergency Finder
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- APPLICATION SHELL -->
+  <div class="app-container">
+
+    <!-- SIDEBAR NAVIGATION -->
+    <nav class="sidebar">
+      <div>
+        <div class="nav-group-title">Core Operations</div>
+        <ul class="nav-links">
+          <li>
+            <a href="#" class="nav-item active" data-tab="dashboard">
+              <span>📊</span> Dashboard Overview
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-tab="emergency-search">
+              <span>🚨</span> Emergency Search
+              <span class="badge badge-danger">Live</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-tab="pharmacy">
+              <span>💊</span> Pharmacy Inventory
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-tab="blood-bank">
+              <span>🩸</span> Blood Bank Tracking
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-tab="hospital">
+              <span>🏥</span> Hospital Resources
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-tab="alerts">
+              <span>⚠️</span> Low-Stock Alerts
+              <span id="sidebarAlertBadge" class="badge badge-warning">0</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-group-title" style="margin-top: 18px;">Network &amp; Architecture</div>
+        <ul class="nav-links">
+          <li>
+            <a href="#" class="nav-item" data-tab="facilities">
+              <span>🏢</span> Connected Facilities
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-tab="api-explorer">
+              <span>⚙️</span> API &amp; Schema Explorer
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar-bottom-card">
+        <h4><span>📋</span> Direct Confirmation</h4>
+        <p>Resource availability reflects reported records. Before dispatching emergency cases, always confirm directly with the reporting facility.</p>
+        <div style="font-weight: 700; color: #0369a1; font-size: 11px;">Central Helpline: 108 / 112</div>
+      </div>
+    </nav>
+
+    <!-- CONTENT WORKSPACE -->
+    <main class="content-area">
+
+      <!-- ===================================================================
+           1. DASHBOARD OVERVIEW TAB
+           =================================================================== -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Healthcare Operations Dashboard</h2>
+            <p>Unified real-time monitoring across regional hospitals, pharmacies, and blood banks.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline" onclick="window.resetDatabaseSeed()">🔄 Reset Demo Seed</button>
+            <button class="btn btn-primary" onclick="window.switchTabToEmergency()">🚨 Search Resource</button>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card primary">
+            <div class="metric-header">
+              <span class="metric-title">Connected Facilities</span>
+              <div class="metric-icon icon-primary">🏢</div>
+            </div>
+            <div id="dashCountFacilities" class="metric-value">6</div>
+            <div class="metric-sub">Hospitals, Pharmacies &amp; Blood Banks</div>
+          </div>
+
+          <div class="metric-card secondary">
+            <div class="metric-header">
+              <span class="metric-title">Medicine Inventory</span>
+              <div class="metric-icon icon-secondary">💊</div>
+            </div>
+            <div id="dashCountMedicines" class="metric-value">1,400+</div>
+            <div class="metric-sub">Across 12 categorized essential drugs</div>
+          </div>
+
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-title">Blood Units On Hand</span>
+              <div class="metric-icon icon-danger">🩸</div>
+            </div>
+            <div id="dashCountBlood" class="metric-value">120+</div>
+            <div class="metric-sub">All 8 ABO/Rh blood groups tracked</div>
+          </div>
+
+          <div class="metric-card warning">
+            <div class="metric-header">
+              <span class="metric-title">Low-Stock Alerts</span>
+              <div class="metric-icon icon-warning">⚠️</div>
+            </div>
+            <div id="dashCountAlerts" class="metric-value">0</div>
+            <div class="metric-sub">At or below reorder threshold</div>
+          </div>
+
+          <div class="metric-card primary">
+            <div class="metric-header">
+              <span class="metric-title">ICU &amp; Emergency Beds</span>
+              <div class="metric-icon icon-primary">🛏️</div>
+            </div>
+            <div id="dashCountBeds" class="metric-value">17</div>
+            <div class="metric-sub">Immediate critical care capacity</div>
+          </div>
+        </div>
+
+        <!-- Blood Units Quick Glance Matrix -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3 class="section-card-title"><span>🩸</span> Regional Blood Bank Availability Matrix</h3>
+            <button class="btn btn-outline btn-sm" onclick="window.switchTabToBlood()">Full Blood Ledger →</button>
+          </div>
+          <div class="section-card-body">
+            <div id="dashBloodMatrix" class="blood-matrix"></div>
+          </div>
+        </div>
+
+        <!-- Recent Critical Alerts -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3 class="section-card-title"><span>⚠️</span> Active Low-Stock &amp; Critical Resource Alerts</h3>
+            <button class="btn btn-outline btn-sm" onclick="window.switchTabToAlerts()">View All Alerts →</button>
+          </div>
+          <div class="section-card-body" style="padding: 0;">
+            <div id="dashAlertsList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           2. EMERGENCY RESOURCE SEARCH TAB (Section 5.4)
+           =================================================================== -->
+      <section id="tab-emergency-search" class="tab-pane">
+        <div class="emergency-banner">
+          <h3>🚨 Emergency Healthcare Resource Search</h3>
+          <p>
+            Quickly locate emergency medicines, blood group reserves, and critical supplies across participating hospitals and pharmacies. Results display verified reporting facility and freshness timestamps.
+          </p>
+
+          <div class="search-mode-tabs">
+            <button class="search-mode-btn active" data-mode="all">All Resources</button>
+            <button class="search-mode-btn" data-mode="medicine">Medicines Only</button>
+            <button class="search-mode-btn" data-mode="blood">Blood Stock Only</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-body">
+            <!-- Search bar -->
+            <div class="filter-bar">
+              <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="emergencySearchInput" class="search-input" placeholder="Type medicine name (e.g. Adrenaline, Meropenem) or blood group (e.g. O-, A+)...">
+              </div>
+              <button class="btn btn-outline" onclick="window.resetEmergencySearch()">Clear Filter</button>
+            </div>
+
+            <!-- Quick blood chips selector -->
+            <div id="searchBloodChipsWrapper" style="margin-bottom: 20px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--slate-600); margin-right: 8px;">Filter Blood Group:</span>
+              <div class="blood-selector-chips" style="display: inline-flex;">
+                <button class="blood-chip active" data-group="ALL">All</button>
+                <button class="blood-chip" data-group="O+">O+</button>
+                <button class="blood-chip" data-group="O-">O-</button>
+                <button class="blood-chip" data-group="A+">A+</button>
+                <button class="blood-chip" data-group="A-">A-</button>
+                <button class="blood-chip" data-group="B+">B+</button>
+                <button class="blood-chip" data-group="B-">B-</button>
+                <button class="blood-chip" data-group="AB+">AB+</button>
+                <button class="blood-chip" data-group="AB-">AB-</button>
+              </div>
+            </div>
+
+            <!-- Search Results Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h4 style="font-size: 15px; font-weight: 700; color: var(--slate-800);" id="searchResultsCount">Search Results</h4>
+              <span style="font-size: 12px; color: var(--slate-500);">⚡ Real-time query matching</span>
+            </div>
+
+            <!-- Results Grid -->
+            <div id="emergencySearchResults" class="search-results-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           3. PHARMACY INVENTORY TAB (Section 5.2)
+           =================================================================== -->
+      <section id="tab-pharmacy" class="tab-pane">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Pharmacy Inventory Management</h2>
+            <p>Maintain medicine stocks, monitor reorder levels, and manage batch allocations.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary admin-only-action" onclick="window.openAddMedicineModal()">+ Add Medicine Stock</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-body">
+            <div class="filter-bar">
+              <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="pharmaSearchInput" class="search-input" placeholder="Search medicine name, category, or generic...">
+              </div>
+              <select id="pharmaFacilityFilter" class="filter-select">
+                <option value="ALL">All Facilities</option>
+              </select>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--slate-700); cursor: pointer;">
+                <input type="checkbox" id="pharmaLowStockFilter">
+                <span>Show Low-Stock Only (TC-07)</span>
+              </label>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Item ID</th>
+                    <th>Medicine Name &amp; Batch</th>
+                    <th>Therapeutic Category</th>
+                    <th>Current Quantity</th>
+                    <th>Reorder Level</th>
+                    <th>Facility Provider</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="pharmacyTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           4. BLOOD BANK TRACKING TAB (Section 5.3)
+           =================================================================== -->
+      <section id="tab-blood-bank" class="tab-pane">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Blood Bank Inventory &amp; Transfusion Ledger</h2>
+            <p>Track ABO/Rh blood groups, components (PRBC, Platelets, FFP), and storage conditions.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-danger admin-only-action" onclick="window.openAddBloodModal()">+ Record Blood Units</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3 class="section-card-title"><span>🩸</span> Group Reserve Status</h3>
+          </div>
+          <div class="section-card-body">
+            <div id="bloodBankMatrix" class="blood-matrix"></div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-body">
+            <div class="filter-bar">
+              <select id="bloodGroupFilter" class="filter-select">
+                <option value="ALL">All Blood Groups</option>
+                <option value="O+">O Positive (O+)</option>
+                <option value="O-">O Negative (O-)</option>
+                <option value="A+">A Positive (A+)</option>
+                <option value="A-">A Negative (A-)</option>
+                <option value="B+">B Positive (B+)</option>
+                <option value="B-">B Negative (B-)</option>
+                <option value="AB+">AB Positive (AB+)</option>
+                <option value="AB-">AB Negative (AB-)</option>
+              </select>
+
+              <select id="bloodFacilityFilter" class="filter-select">
+                <option value="ALL">All Connected Blood Banks</option>
+              </select>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Record ID</th>
+                    <th>Blood Group</th>
+                    <th>Component</th>
+                    <th>Available Quantity</th>
+                    <th>Stock Status</th>
+                    <th>Facility &amp; Temp</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="bloodTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           5. HOSPITAL RESOURCES TAB (Section 5.1)
+           =================================================================== -->
+      <section id="tab-hospital" class="tab-pane">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Hospital Medical Resources &amp; Bed Capacity</h2>
+            <p>Coordinate intensive care beds, ventilator suites, medical oxygen, and monitors.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-secondary admin-only-action" onclick="window.openAddHospitalResModal()">+ Add Hospital Resource</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Resource ID</th>
+                    <th>Asset Name &amp; Category</th>
+                    <th>Hospital Facility</th>
+                    <th>Total Capacity</th>
+                    <th>Available Units</th>
+                    <th>Utilization</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="hospitalTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           6. LOW-STOCK ALERTS TAB (Section 5.5)
+           =================================================================== -->
+      <section id="tab-alerts" class="tab-pane">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Automated Low-Stock Alert Center</h2>
+            <p>Algorithmic threshold monitoring flags medicine and blood stock needing immediate replenishment.</p>
+          </div>
+        </div>
+
+        <div class="verification-notice">
+          <span>⚙️</span>
+          <div>
+            <strong>Configurable Reorder Rule (Section 5.5)</strong>
+            <p style="margin-top: 2px;">
+              Whenever <code>currentQuantity &le; reorderLevel</code>, a Warning flag is raised. Quantities below 50% threshold or &le; 2 units trigger a <strong>Critical Flag</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div id="alertsListContainer"></div>
+      </section>
+
+      <!-- ===================================================================
+           7. CONNECTED FACILITIES DIRECTORY (Section 5.6)
+           =================================================================== -->
+      <section id="tab-facilities" class="tab-pane">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Connected Regional Healthcare Network</h2>
+            <p>Authorized hospitals, medical stores, community pharmacies, and regional blood banks.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary admin-only-action" onclick="window.openAddFacilityModal()">+ Connect New Facility</button>
+          </div>
+        </div>
+
+        <div id="facilitiesGrid" class="search-results-grid"></div>
+      </section>
+
+      <!-- ===================================================================
+           8. API & MONGODB SCHEMA EXPLORER (Chapter 7 & Appendix A)
+           =================================================================== -->
+      <section id="tab-api-explorer" class="tab-pane">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>API Routes &amp; MongoDB Collections Explorer</h2>
+            <p>Interactive demonstration of the proposed REST API endpoints and data model schema.</p>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-title">Test Appendix A API Route</span>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/facilities')">GET /api/facilities</button>
+              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/medicines')">GET /api/medicines</button>
+              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/blood-stock')">GET /api/blood-stock</button>
+              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/alerts')">GET /api/alerts</button>
+              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/users')">GET /api/users</button>
+            </div>
+          </div>
+
+          <div style="grid-column: span 2;">
+            <div class="section-card" style="margin-bottom: 0;">
+              <div class="section-card-header">
+                <span id="apiActiveRouteTitle" style="font-family: monospace; font-weight: 700; color: #0284c7;">API Response JSON Viewer</span>
+                <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('apiResponseJson').textContent); window.showToast('Copied JSON payload to clipboard', 'success');">📋 Copy Payload</button>
+              </div>
+              <div class="section-card-body" style="padding: 12px;">
+                <pre id="apiResponseJson" class="code-preview" style="max-height: 380px;">Loading database state...</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 1: ADD / EDIT MEDICINE (TC-01, TC-02, TC-03)
+       ======================================================================= -->
+  <div id="medicineModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="medFormTitle">Add Medicine Stock Record</h3>
+        <button class="modal-close-btn" onclick="window.closeModal('medicineModal')">&times;</button>
+      </div>
+      <form id="medicineForm">
+        <div class="modal-body">
+          <input type="hidden" id="medFormId">
+          <div class="form-group">
+            <label class="form-label" for="medFormName">Medicine Name &amp; Strength *</label>
+            <input type="text" id="medFormName" class="form-control" placeholder="e.g. Adrenaline 1mg/ml Injection" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="medFormCategory">Category</label>
+              <select id="medFormCategory" class="form-control">
+                <option value="Emergency &amp; Critical Care">Emergency &amp; Critical Care</option>
+                <option value="Antibiotics">Antibiotics</option>
+                <option value="Analgesic &amp; Antipyretic">Analgesic &amp; Antipyretic</option>
+                <option value="Cardiovascular &amp; Antiarrhythmic">Cardiovascular &amp; Antiarrhythmic</option>
+                <option value="Intravenous Fluids">Intravenous Fluids</option>
+                <option value="Endocrinology">Endocrinology</option>
+                <option value="Corticosteroids">Corticosteroids</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="medFormFacility">Facility *</label>
+              <select id="medFormFacility" class="form-control" required></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="medFormQty">Current Quantity (non-negative) *</label>
+              <input type="number" id="medFormQty" class="form-control" min="0" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="medFormUnit">Unit</label>
+              <select id="medFormUnit" class="form-control">
+                <option value="Ampoules">Ampoules</option>
+                <option value="Vials">Vials</option>
+                <option value="Bottles">Bottles</option>
+                <option value="Tablets">Tablets</option>
+                <option value="Strips">Strips</option>
+                <option value="Boxes">Boxes</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="medFormReorder">Reorder Threshold *</label>
+              <input type="number" id="medFormReorder" class="form-control" min="0" placeholder="25" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="medFormBatch">Batch Number</label>
+              <input type="text" id="medFormBatch" class="form-control" placeholder="e.g. BAT-2026A">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.closeModal('medicineModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 2: ADD / EDIT BLOOD UNITS (TC-06)
+       ======================================================================= -->
+  <div id="bloodModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="bloodFormTitle">Add Blood Unit Record</h3>
+        <button class="modal-close-btn" onclick="window.closeModal('bloodModal')">&times;</button>
+      </div>
+      <form id="bloodForm">
+        <div class="modal-body">
+          <input type="hidden" id="bloodFormId">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="bloodFormGroup">Blood Group *</label>
+              <select id="bloodFormGroup" class="form-control" required>
+                <option value="O+">O Positive (O+)</option>
+                <option value="O-">O Negative (O-)</option>
+                <option value="A+">A Positive (A+)</option>
+                <option value="A-">A Negative (A-)</option>
+                <option value="B+">B Positive (B+)</option>
+                <option value="B-">B Negative (B-)</option>
+                <option value="AB+">AB Positive (AB+)</option>
+                <option value="AB-">AB Negative (AB-)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="bloodFormComponent">Component</label>
+              <select id="bloodFormComponent" class="form-control">
+                <option value="Whole Blood">Whole Blood</option>
+                <option value="Packed Red Blood Cells (PRBC)">Packed Red Blood Cells (PRBC)</option>
+                <option value="Platelet Concentrate (RDP)">Platelet Concentrate (RDP)</option>
+                <option value="Fresh Frozen Plasma (FFP)">Fresh Frozen Plasma (FFP)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="bloodFormFacility">Facility *</label>
+            <select id="bloodFormFacility" class="form-control" required></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="bloodFormQty">Quantity (Units) *</label>
+              <input type="number" id="bloodFormQty" class="form-control" min="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="bloodFormTemp">Storage Temperature</label>
+              <input type="text" id="bloodFormTemp" class="form-control" value="2°C - 6°C">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.closeModal('bloodModal')">Cancel</button>
+          <button type="submit" class="btn btn-danger">Save Blood Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 3: ADD / EDIT HOSPITAL RESOURCE
+       ======================================================================= -->
+  <div id="hospitalModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="hospFormTitle">Hospital Medical Resource</h3>
+        <button class="modal-close-btn" onclick="window.closeModal('hospitalModal')">&times;</button>
+      </div>
+      <form id="hospitalForm">
+        <div class="modal-body">
+          <input type="hidden" id="hospFormId">
+          <div class="form-group">
+            <label class="form-label" for="hospFormName">Resource Name *</label>
+            <input type="text" id="hospFormName" class="form-control" placeholder="e.g. ICU Ventilator Suite" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="hospFormCat">Category</label>
+              <select id="hospFormCat" class="form-control">
+                <option value="Intensive Care Beds">Intensive Care Beds</option>
+                <option value="Critical Equipment">Critical Equipment</option>
+                <option value="Gas &amp; Respiratory">Gas &amp; Respiratory</option>
+                <option value="Diagnostic &amp; Monitoring">Diagnostic &amp; Monitoring</option>
+                <option value="Wards &amp; Isolation">Wards &amp; Isolation</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hospFormFacility">Hospital Facility</label>
+              <select id="hospFormFacility" class="form-control" required></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="hospFormTotal">Total Capacity *</label>
+              <input type="number" id="hospFormTotal" class="form-control" min="1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hospFormAvail">Available Units *</label>
+              <input type="number" id="hospFormAvail" class="form-control" min="0" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="hospFormThreshold">Reorder / Alert Threshold</label>
+              <input type="number" id="hospFormThreshold" class="form-control" min="0" value="3">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hospFormUnit">Unit</label>
+              <input type="text" id="hospFormUnit" class="form-control" value="Beds">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.closeModal('hospitalModal')">Cancel</button>
+          <button type="submit" class="btn btn-secondary">Save Resource</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 4: DIRECT CONFIRMATION PROTOCOL
+       ======================================================================= -->
+  <div id="confirmModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Direct Confirmation Protocol</h3>
+        <button class="modal-close-btn" onclick="window.closeModal('confirmModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="confirmModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="window.closeModal('confirmModal')">Close Window</button>
+        <button type="button" class="btn btn-primary" onclick="window.closeModal('confirmModal'); window.showToast('Direct confirmation recorded with facility desk', 'success');">Confirm &amp; Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 5: CONNECT NEW FACILITY
+       ======================================================================= -->
+  <div id="facilityModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Connect Healthcare Facility</h3>
+        <button class="modal-close-btn" onclick="window.closeModal('facilityModal')">&times;</button>
+      </div>
+      <form id="facilityForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="facFormName">Facility Name *</label>
+            <input type="text" id="facFormName" class="form-control" placeholder="e.g. Government Medical College Hospital" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="facFormType">Facility Type</label>
+              <select id="facFormType" class="form-control">
+                <option value="Hospital">Hospital</option>
+                <option value="Pharmacy">Pharmacy</option>
+                <option value="Blood Bank">Blood Bank</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="facFormCoordinator">Lead Coordinator</label>
+              <input type="text" id="facFormCoordinator" class="form-control" placeholder="e.g. Dr. A. Menon">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="facFormAddress">Address *</label>
+            <input type="text" id="facFormAddress" class="form-control" placeholder="Street, City, State, PIN" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="facFormPhone">Desk Phone *</label>
+              <input type="text" id="facFormPhone" class="form-control" placeholder="+91 471 ...">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="facFormEmergency">24/7 Emergency Line *</label>
+              <input type="text" id="facFormEmergency" class="form-control" placeholder="108 or +91 471 ...">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.closeModal('facilityModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Connect Facility</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div>
+      <strong>THRIVE&CO</strong> — Healthcare Resource Management System | B.Tech CSE Project (2026–2027)
+    </div>
+    <div>
+      Marian College of Engineering • Nidha Nafeer, Harinandana K, Asher Satyadas, Suryanarayanan SD
+    </div>
+  </footer>
+
+  <!-- SCRIPT INCLUSIONS -->
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- QUICK NAVIGATION HELPER FUNCTIONS -->
+  <script>
+    window.switchTabToEmergency = function() {
+      const tabBtn = document.querySelector('.nav-item[data-tab="emergency-search"]');
+      if (tabBtn) tabBtn.click();
+    };
+    window.switchTabToBlood = function() {
+      const tabBtn = document.querySelector('.nav-item[data-tab="blood-bank"]');
+      if (tabBtn) tabBtn.click();
+    };
+    window.switchTabToAlerts = function() {
+      const tabBtn = document.querySelector('.nav-item[data-tab="alerts"]');
+      if (tabBtn) tabBtn.click();
+    };
+  </script>
+</body>
+</html>
