@@ -1,0 +1,21 @@
+{
+  "name": "thrive-and-co-backend",
+  "version": "1.0.0",
+  "description": "Thrive&Co Healthcare Resource Management System - Node.js & Express.js REST API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "author": "Nidha Nafeer, Harinandana K, Asher Satyadas, Suryanarayanan SD",
+  "license": "ISC"
+}

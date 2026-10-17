@@ -1,0 +1,3 @@
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/thrive_and_co
+NODE_ENV=development
