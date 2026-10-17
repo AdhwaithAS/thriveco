@@ -1,4 +1,4 @@
-/**
+ /**
  * THRIVE&CO - Main Application Controller
  * Handles Navigation, State, Rendering, Search, Modals, Forms & Alerts
  * Marian College of Engineering - Academic Project 2026-2027
