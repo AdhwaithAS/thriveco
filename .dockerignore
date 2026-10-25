@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Environment & credentials (never copy secrets into the image)
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+target/
+*.jar
+*.war
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Logs
+*.log
+logs/
+
+# Legacy / scratch
+legacy-nodejs/
+scratch/
+
+# Local scripts not needed in container
+run.sh
+run.bat

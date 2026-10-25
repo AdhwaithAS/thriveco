@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: thriveco
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8080
+      # Neon PostgreSQL configuration:
+      # Set your Neon database credentials in the Render dashboard or fill them here
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Tip: To run a standalone demo without Neon, uncomment this line:
+      # - key: SPRING_PROFILES_ACTIVE
+      #   value: local
