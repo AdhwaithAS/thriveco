@@ -9,14 +9,8 @@
 <body>
 
   <!-- ACADEMIC BANNER -->
-  <aside class="academic-ribbon">
-    <div>
-      🎓 <strong>Marian College of Engineering</strong> — Department of Computer Science &amp; Engineering | Academic Year 2026–2027
-    </div>
-    <div class="team-tag">
-      Project Team: Nidha Nafeer • Harinandana K • Asher Satyadas • Suryanarayanan SD
-    </div>
-  </aside>
+  
+    
 
   <!-- MAIN HEADER -->
   <header class="main-header">
@@ -72,7 +66,7 @@
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="emergency-search">
-              <span>🚨</span> Emergency Search
+              <span></span> Emergency Search
               <span class="badge badge-danger">Live</span>
             </a>
           </li>
@@ -93,7 +87,7 @@
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="alerts">
-              <span>⚠️</span> Low-Stock Alerts
+              <span></span> Low-Stock Alerts
               <span id="sidebarAlertBadge" class="badge badge-warning">0</span>
             </a>
           </li>
@@ -153,7 +147,7 @@
           <div class="metric-card secondary">
             <div class="metric-header">
               <span class="metric-title">Medicine Inventory</span>
-              <div class="metric-icon icon-secondary">💊</div>
+              <div class="metric-icon icon-secondary"></div>
             </div>
             <div id="dashCountMedicines" class="metric-value">1,400+</div>
             <div class="metric-sub">Across 12 categorized essential drugs</div>
@@ -162,7 +156,7 @@
           <div class="metric-card danger">
             <div class="metric-header">
               <span class="metric-title">Blood Units On Hand</span>
-              <div class="metric-icon icon-danger">🩸</div>
+              <div class="metric-icon icon-danger"></div>
             </div>
             <div id="dashCountBlood" class="metric-value">120+</div>
             <div class="metric-sub">All 8 ABO/Rh blood groups tracked</div>
@@ -171,7 +165,7 @@
           <div class="metric-card warning">
             <div class="metric-header">
               <span class="metric-title">Low-Stock Alerts</span>
-              <div class="metric-icon icon-warning">⚠️</div>
+              <div class="metric-icon icon-warning"></div>
             </div>
             <div id="dashCountAlerts" class="metric-value">0</div>
             <div class="metric-sub">At or below reorder threshold</div>
@@ -201,7 +195,7 @@
         <!-- Recent Critical Alerts -->
         <div class="section-card">
           <div class="section-card-header">
-            <h3 class="section-card-title"><span>⚠️</span> Active Low-Stock &amp; Critical Resource Alerts</h3>
+            <h3 class="section-card-title"><span></span> Active Low-Stock &amp; Critical Resource Alerts</h3>
             <button class="btn btn-outline btn-sm" onclick="window.switchTabToAlerts()">View All Alerts →</button>
           </div>
           <div class="section-card-body" style="padding: 0;">
@@ -215,7 +209,7 @@
            =================================================================== -->
       <section id="tab-emergency-search" class="tab-pane">
         <div class="emergency-banner">
-          <h3>🚨 Emergency Healthcare Resource Search</h3>
+          <h3> Emergency Healthcare Resource Search</h3>
           <p>
             Quickly locate emergency medicines, blood group reserves, and critical supplies across participating hospitals and pharmacies. Results display verified reporting facility and freshness timestamps.
           </p>
@@ -257,7 +251,7 @@
             <!-- Search Results Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h4 style="font-size: 15px; font-weight: 700; color: var(--slate-800);" id="searchResultsCount">Search Results</h4>
-              <span style="font-size: 12px; color: var(--slate-500);">⚡ Real-time query matching</span>
+              <span style="font-size: 12px; color: var(--slate-500);"> Real-time query matching</span>
             </div>
 
             <!-- Results Grid -->
@@ -333,7 +327,7 @@
 
         <div class="section-card">
           <div class="section-card-header">
-            <h3 class="section-card-title"><span>🩸</span> Group Reserve Status</h3>
+            <h3 class="section-card-title"><span></span> Group Reserve Status</h3>
           </div>
           <div class="section-card-body">
             <div id="bloodBankMatrix" class="blood-matrix"></div>
