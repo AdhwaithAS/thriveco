@@ -1,13 +1,15 @@
 package com.marian.thriveco.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * A demo network user. Authentication is intentionally out of scope for this
- * academic prototype; the UI switches between these predefined roles.
+ * A network user account used by the role-based access control (RBAC) layer.
+ * Passwords are stored as PBKDF2 hashes only; the hash is never serialized
+ * into JSON responses.
  */
 @Entity
 @Table(name = "app_users")
@@ -28,6 +30,11 @@ public class AppUser {
 
     @Column(name = "facility_id", length = 20)
     private String facilityId;
+
+    /** PBKDF2 hash - excluded from every JSON serialization on purpose. */
+    @JsonIgnore
+    @Column(name = "password_hash", length = 200)
+    private String passwordHash;
 
     public AppUser() {
     }
@@ -70,5 +77,13 @@ public class AppUser {
 
     public void setFacilityId(String facilityId) {
         this.facilityId = facilityId;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

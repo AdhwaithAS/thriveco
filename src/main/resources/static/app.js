@@ -1,27 +1,27 @@
 /**
  * THRIVE&CO - Main Application Controller (Java/Spring Boot edition)
- * Handles navigation, rendering, search, modals, forms and the live alert feed.
+ * Handles authentication, RBAC gating, navigation, rendering, search,
+ * modals, forms and the live alert feed.
  *
- * All data now comes from the Java REST API in src/main/java instead of the
- * browser's localStorage.
+ * All data comes from the Java REST API in src/main/java. Mutating actions
+ * are additionally guarded client-side by the role of the signed-in account;
+ * the backend re-checks every call (defence in depth).
  */
 document.addEventListener('DOMContentLoaded', () => {
   const state = {
     currentTab: 'dashboard',
-    currentRole: 'System Admin',
+    user: null,
+    accounts: [],
     searchMode: 'all',
     searchBloodGroup: 'ALL',
     facilities: []
   };
 
-  const tabPanes = document.querySelectorAll('.tab-pane');
-  const navItems = document.querySelectorAll('.nav-item');
-  const roleSelect = document.getElementById('userRoleSelect');
-  const liveClockEl = document.getElementById('liveClock');
-
   // ---------------------------------------------------------------------
   // Shared helpers
   // ---------------------------------------------------------------------
+  const I = window.THI; // icon markup helper from icons.js
+
   function escapeHtml(value) {
     return String(value === undefined || value === null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -68,14 +68,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function showTableMessage(tableBody, columns, message, color) {
+  function showTableMessage(tableBody, columns, message, icon = 'info') {
     if (!tableBody) return;
     tableBody.innerHTML = `
       <tr>
-        <td colspan="${columns}" style="text-align:center; padding:30px; color:${color || '#64748b'};">
-          ${escapeHtml(message)}
+        <td colspan="${columns}">
+          <div class="table-message">${I(icon, 18)}<span>${escapeHtml(message)}</span></div>
         </td>
       </tr>`;
+  }
+
+  function emptyState(icon, title, description, actionHtml = '') {
+    return `
+      <div class="empty-state">
+        <span class="empty-state-icon">${I(icon, 30)}</span>
+        <h4>${escapeHtml(title)}</h4>
+        <p>${description}</p>
+        ${actionHtml}
+      </div>`;
+  }
+
+  function spinnerText(message) {
+    return `<div class="loading-line"><span class="spinner"></span>${escapeHtml(message)}</div>`;
   }
 
   function fillFacilitySelect(select, allLabel, selectedId) {
@@ -101,6 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---------------------------------------------------------------------
   // Live clock
   // ---------------------------------------------------------------------
+  const liveClockEl = document.getElementById('liveClock');
+
   function updateClock() {
     if (!liveClockEl) return;
     const now = new Date();
@@ -114,39 +130,59 @@ document.addEventListener('DOMContentLoaded', () => {
   updateClock();
 
   // ---------------------------------------------------------------------
-  // Toast notifications
+  // Toast notifications (icon per type, manual close button)
   // ---------------------------------------------------------------------
+  const TOAST_ICONS = {
+    success: { icon: 'check-circle', label: 'Success' },
+    error: { icon: 'x-circle', label: 'Error' },
+    warning: { icon: 'alert-triangle', label: 'Warning' },
+    info: { icon: 'info', label: 'Info' }
+  };
+
   window.showToast = function (message, type = 'info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
+    const meta = TOAST_ICONS[type] || TOAST_ICONS.info;
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = `toast toast-${type}`;
 
-    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-    const icon = document.createElement('span');
-    icon.textContent = icons[type] || icons.info;
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'toast-icon';
+    iconWrap.innerHTML = I(meta.icon, 17);
+    iconWrap.setAttribute('aria-hidden', 'true');
+
     const body = document.createElement('div');
+    body.className = 'toast-body';
     body.textContent = message;
 
-    toast.appendChild(icon);
-    toast.appendChild(body);
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'toast-close';
+    close.setAttribute('aria-label', 'Dismiss notification');
+    close.innerHTML = I('x', 13);
+    close.addEventListener('click', () => removeToast(toast));
+
+    toast.append(iconWrap, body, close);
     container.appendChild(toast);
 
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 3500);
+    const timer = setTimeout(() => removeToast(toast), 4200);
+    toast.addEventListener('mouseenter', () => clearTimeout(timer));
   };
+
+  function removeToast(toast) {
+    if (!toast.isConnected) return;
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 260);
+  }
 
   function showBackendOffline(message) {
     if (document.getElementById('backendOfflineBanner')) return;
     const banner = document.createElement('div');
     banner.id = 'backendOfflineBanner';
-    banner.style.cssText = 'margin:16px 0;padding:14px 18px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:10px;font-size:13px;font-weight:600;';
-    banner.textContent = message;
+    banner.style.cssText = 'margin:0 0 20px 0;padding:14px 18px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;';
+    banner.innerHTML = `${I('alert-triangle', 17)}<span>${escapeHtml(message)}</span>`;
     const content = document.querySelector('.content-area');
     if (content) content.prepend(banner);
   }
@@ -156,9 +192,323 @@ document.addEventListener('DOMContentLoaded', () => {
     if (banner) banner.remove();
   }
 
-  // ---------------------------------------------------------------------
+  // =====================================================================
+  // AUTHENTICATION (RBAC sign-in gate)
+  // =====================================================================
+  const authGate = document.getElementById('authGate');
+  const loginForm = document.getElementById('loginForm');
+  const loginUserSelect = document.getElementById('loginUserSelect');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginMessage = document.getElementById('loginMessage');
+  const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+  const loginSubmitLabel = document.getElementById('loginSubmitLabel');
+  const demoChipsEl = document.getElementById('demoAccountChips');
+  const togglePasswordBtn = document.getElementById('togglePassword');
+
+  function initialsOf(name) {
+    if (!name) return '--';
+    const parts = String(name).trim().split(/\s+/);
+    const letters = parts.slice(0, 2).map(part => part[0] || '');
+    return (letters.join('') || '--').toUpperCase();
+  }
+
+  function showLoginMessage(message, type = 'error') {
+    if (!loginMessage) return;
+    loginMessage.hidden = false;
+    loginMessage.className = `login-message ${type}`;
+    loginMessage.innerHTML = `${I(type === 'error' ? 'x-circle' : 'info', 15)}<span>${escapeHtml(message)}</span>`;
+  }
+
+  function clearLoginMessage() {
+    if (loginMessage) loginMessage.hidden = true;
+  }
+
+  function setLoginLoading(loading) {
+    if (!loginSubmitBtn) return;
+    loginSubmitBtn.disabled = loading;
+    if (loginSubmitLabel) loginSubmitLabel.textContent = loading ? 'Signing in...' : 'Sign in';
+    loginSubmitBtn.classList.toggle('is-loading', loading);
+  }
+
+  async function loadDemoAccounts() {
+    try {
+      state.accounts = await API.accounts();
+    } catch (error) {
+      showLoginMessage(error.message, 'error');
+      return;
+    }
+
+    if (loginUserSelect) {
+      const options = state.accounts.map(account =>
+        `<option value="${escapeHtml(account.userId)}">${escapeHtml(account.userId)} - ${escapeHtml(account.name)} (${escapeHtml(account.role)})</option>`
+      );
+      loginUserSelect.innerHTML = options.join('') || '<option value="">No accounts configured</option>';
+    }
+
+    if (demoChipsEl) {
+      demoChipsEl.innerHTML = state.accounts.map(account => `
+        <button type="button" class="demo-chip" data-user="${escapeHtml(account.userId)}"
+                title="Fill sign-in with ${escapeHtml(account.name)}">
+          <strong>${escapeHtml(account.role)}</strong>
+          <span>${escapeHtml(account.userId)} &middot; ${escapeHtml(account.name)}</span>
+        </button>
+      `).join('');
+      demoChipsEl.querySelectorAll('.demo-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          if (loginUserSelect) loginUserSelect.value = chip.getAttribute('data-user');
+          clearLoginMessage();
+          if (loginPassword) loginPassword.focus();
+        });
+      });
+    }
+  }
+
+  function renderSession() {
+    const user = state.user;
+    if (!user) return;
+
+    const avatar = initialsOf(user.name);
+    const avatarEl = document.getElementById('userAvatar');
+    const menuAvatar = document.getElementById('userMenuAvatar');
+    if (avatarEl) avatarEl.textContent = avatar;
+    if (menuAvatar) menuAvatar.textContent = avatar;
+
+    const name = document.getElementById('userNameText');
+    const role = document.getElementById('userRoleText');
+    if (name) name.textContent = user.name || user.userId;
+    if (role) role.textContent = user.role || '';
+
+    const menuName = document.getElementById('userMenuName');
+    const menuMeta = document.getElementById('userMenuMeta');
+    if (menuName) menuName.textContent = user.name || user.userId;
+    if (menuMeta) {
+      menuMeta.textContent = `${user.userId}${user.facilityId ? ' · ' + user.facilityId : ''} · ${user.role}`;
+    }
+
+    const privileges = document.getElementById('userMenuPrivileges');
+    if (privileges) privileges.textContent = describePrivileges(user.role);
+
+    applyRbac();
+  }
+
+  function openAuthGate(message) {
+    if (!authGate) return;
+    state.user = null;
+    renderSignedOutChip();
+    if (message) {
+      showLoginMessage(message, 'info');
+    } else {
+      clearLoginMessage();
+    }
+    if (loginPassword) loginPassword.value = '';
+    authGate.classList.add('active');
+  }
+
+  function closeAuthGate() {
+    if (!authGate) return;
+    authGate.classList.remove('active');
+  }
+
+  function renderSignedOutChip() {
+    const avatar = document.getElementById('userAvatar');
+    const name = document.getElementById('userNameText');
+    const role = document.getElementById('userRoleText');
+    if (avatar) avatar.textContent = '--';
+    if (name) name.textContent = 'Signed out';
+    if (role) role.textContent = '\u00A0';
+  }
+
+  function enterApp() {
+    closeAuthGate();
+    renderSession();
+    bootApplication();
+  }
+
+  async function tryRestoreSession() {
+    const session = window.ThriveAuth.get();
+    if (session && session.token && session.user) {
+      try {
+        const me = await API.me();
+        state.user = me.user;
+        enterApp();
+        return;
+      } catch (error) {
+        window.ThriveAuth.set(null); // token invalid - fall through to sign-in
+      }
+    }
+    openAuthGate();
+    loadDemoAccounts();
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      clearLoginMessage();
+
+      const userId = loginUserSelect ? loginUserSelect.value : '';
+      const password = loginPassword ? loginPassword.value : '';
+
+      if (!userId) {
+        showLoginMessage('Choose a demo account to continue.', 'error');
+        return;
+      }
+
+      setLoginLoading(true);
+      try {
+        const session = await API.login(userId, password);
+        window.ThriveAuth.set(session);
+        state.user = session.user;
+        await loadFacilities(); // preload facility names for the dashboard
+        enterApp();
+        showToast(`Signed in as ${session.user.name} (${session.user.role})`, 'success');
+      } catch (error) {
+        showLoginMessage(error.message, 'error');
+      } finally {
+        setLoginLoading(false);
+      }
+    });
+  }
+
+  if (togglePasswordBtn) {
+    togglePasswordBtn.addEventListener('click', () => {
+      const showing = loginPassword.type === 'text';
+      loginPassword.type = showing ? 'password' : 'text';
+      togglePasswordBtn.classList.toggle('active', !showing);
+      togglePasswordBtn.innerHTML = I(showing ? 'eye' : 'eye-off', 16);
+      loginPassword.focus();
+    });
+  }
+
+  // User chip dropdown
+  const userChipBtn = document.getElementById('userChipBtn');
+  const userMenu = document.getElementById('userMenu');
+
+  function toggleUserMenu(open) {
+    if (!userMenu || !userChipBtn) return;
+    const shouldOpen = open !== undefined ? open : userMenu.hidden;
+    userMenu.hidden = !shouldOpen;
+    userChipBtn.setAttribute('aria-expanded', String(shouldOpen));
+  }
+
+  if (userChipBtn) {
+    userChipBtn.addEventListener('click', event => {
+      event.stopPropagation();
+      toggleUserMenu();
+    });
+  }
+
+  document.addEventListener('click', event => {
+    if (userMenu && userMenu.hidden === false
+        && !userMenu.contains(event.target) && event.target !== userChipBtn
+        && !userChipBtn.contains(event.target)) {
+      toggleUserMenu(false);
+    }
+  });
+
+  async function signOut() {
+    try { await API.logout(); } catch (error) { /* stateless - ignore */ }
+    window.ThriveAuth.set(null);
+    state.user = null;
+    toggleUserMenu(false);
+    openAuthGate();
+    loadDemoAccounts();
+    showToast('Signed out', 'info');
+  }
+
+  const signOutBtn = document.getElementById('signOutBtn');
+  if (signOutBtn) signOutBtn.addEventListener('click', signOut);
+
+  const switchAccountBtn = document.getElementById('switchAccountBtn');
+  if (switchAccountBtn) {
+    switchAccountBtn.addEventListener('click', async () => {
+      try { await API.logout(); } catch (error) { /* stateless - ignore */ }
+      window.ThriveAuth.set(null);
+      state.user = null;
+      toggleUserMenu(false);
+      openAuthGate();
+      loadDemoAccounts();
+    });
+  }
+
+  // 401 from any API call -> return to the sign-in gate.
+  window.addEventListener('thriveco:session-expired', event => {
+    if (authGate && authGate.classList.contains('active')) return; // already signing in
+    openAuthGate('Your session has expired. Please sign in again.');
+    loadDemoAccounts();
+  });
+
+  // =====================================================================
+  // RBAC - client-side mirror of the server-side permission matrix
+  // =====================================================================
+  const ROLE_WRITE_ACCESS = {
+    'System Admin': ['facilities', 'medicines', 'blood-stock', 'hospital-resources'],
+    'Hospital Staff': ['hospital-resources'],
+    'Pharmacy Staff': ['medicines'],
+    'Blood Bank Officer': ['blood-stock'],
+    'Emergency Search User': []
+  };
+
+  function canWrite(resource) {
+    if (!state.user) return false;
+    const allowed = ROLE_WRITE_ACCESS[state.user.role] || [];
+    return allowed.includes(resource);
+  }
+
+  /** Human description of privileges (mirrors backend AccessPolicy.describe). */
+  function describePrivileges(roleName) {
+    switch (roleName) {
+      case 'System Admin':
+        return 'Full access - can manage every module, including the facility network.';
+      case 'Hospital Staff':
+        return 'Can manage hospital resources (beds, ventilators, oxygen) for all facilities.';
+      case 'Pharmacy Staff':
+        return 'Can manage medicine stock records for all connected pharmacies.';
+      case 'Blood Bank Officer':
+        return 'Can manage blood unit records and transfusion ledger entries.';
+      default:
+        return 'Read-only access - emergency search and monitoring, no editing.';
+    }
+  }
+
+  function resourceForType(resourceType) {
+    switch (resourceType) {
+      case 'Medicine': return 'medicines';
+      case 'Blood Unit': return 'blood-stock';
+      case 'Hospital Resource': return 'hospital-resources';
+      default: return null;
+    }
+  }
+
+  function applyRbac() {
+    const role = state.user ? state.user.role : null;
+    document.querySelectorAll('[data-sec]').forEach(element => {
+      element.classList.toggle('sec-hidden', !canWrite(element.getAttribute('data-sec')));
+    });
+
+    // Emergency Search User sees an explicit read-only chip next to their name.
+    const roleText = document.getElementById('userRoleText');
+    if (roleText && state.user) {
+      roleText.classList.toggle('readonly-chip', role === 'Emergency Search User');
+    }
+  }
+
+  // If a signed-in user manually triggers a guarded write, show guidance.
+  function roleHintFor(resource) {
+    const target = {
+      'facilities': 'System Admin',
+      'medicines': 'Pharmacy Staff (or System Admin)',
+      'blood-stock': 'Blood Bank Officer (or System Admin)',
+      'hospital-resources': 'Hospital Staff (or System Admin)'
+    }[resource] || 'System Admin';
+    return `Ask a ${target} account - your ${state.user ? state.user.role : ''} role is read-only here.`;
+  }
+
+  // =====================================================================
   // Navigation
-  // ---------------------------------------------------------------------
+  // =====================================================================
+  const tabPanes = document.querySelectorAll('.tab-pane');
+  const navItems = document.querySelectorAll('.nav-item');
+
   function switchTab(tabId) {
     state.currentTab = tabId;
     navItems.forEach(item => {
@@ -167,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tabPanes.forEach(pane => {
       pane.classList.toggle('active', pane.id === `tab-${tabId}`);
     });
-    renderCurrentTab();
+    if (state.user) renderCurrentTab();
   }
 
   navItems.forEach(item => {
@@ -177,20 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tab) switchTab(tab);
     });
   });
-
-  if (roleSelect) {
-    roleSelect.addEventListener('change', event => {
-      state.currentRole = event.target.value;
-      showToast(`Switched active view to: ${state.currentRole}`);
-      applyRolePermissions();
-    });
-  }
-
-  function applyRolePermissions() {
-    document.querySelectorAll('.admin-only-action').forEach(button => {
-      button.style.display = state.currentRole === 'Emergency Search User' ? 'none' : '';
-    });
-  }
 
   async function updateBadges(metrics) {
     try {
@@ -268,17 +604,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (alertListEl) {
       const activeAlerts = alerts.slice(0, 5);
       if (activeAlerts.length === 0) {
-        alertListEl.innerHTML = '<div style="padding:20px; text-align:center; color:#10b981;">No active stock alerts. All inventories optimal.</div>';
+        alertListEl.innerHTML = `
+          <div style="padding:22px;">
+            ${I('check-circle', 18)}
+            <strong style="color:#065f46; font-weight:700; vertical-align:1px;">No active stock alerts.</strong>
+            <span style="color:#64748b; font-size:13px; margin-left:6px;">All inventories are optimal.</span>
+          </div>`;
       } else {
         alertListEl.innerHTML = activeAlerts.map(alert => `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #f1f5f9;">
-            <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #f1f5f9; gap:12px;">
+            <div style="min-width:0;">
               <span class="status-pill ${statusClass(alert.severity)}">${escapeHtml(alert.severity)}</span>
               <strong style="margin-left:8px; color:#1e293b;">${escapeHtml(alert.resourceName)}</strong>
               <span style="font-size:12px; color:#64748b; margin-left:8px;">(${escapeHtml(facilityName(alert.facilityId))})</span>
               <p style="font-size:12px; color:#475569; margin-top:2px;">${escapeHtml(alert.message)}</p>
             </div>
-            <button class="btn btn-outline btn-sm" onclick="window.viewInResource('${escapeHtml(alert.resourceType)}')">Inspect</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="window.viewInResource('${escapeHtml(alert.resourceType)}')">
+              ${I('search', 13)} Inspect
+            </button>
           </div>
         `).join('');
       }
@@ -307,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let statusText = 'Adequate';
       if (totalUnits <= 5) {
         statusColor = '#ef4444';
-        statusText = 'CRITICAL';
+        statusText = 'Critical';
       } else if (totalUnits <= 10) {
         statusColor = '#f59e0b';
         statusText = 'Low Reserve';
@@ -336,6 +679,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const requestId = ++emergencyRequestId;
     const query = searchInput ? searchInput.value : '';
 
+    if (!(resultsContainer.dataset.loaded) && !query) {
+      resultsContainer.innerHTML = `<div style="grid-column:1/-1;">${spinnerText('Searching resources across every connected facility...')}</div>`;
+    }
+
     let results;
     try {
       results = await API.searchEmergency({
@@ -358,15 +705,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (results.length === 0) {
       resultsContainer.innerHTML = `
-        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; background: white; border-radius: 12px; border: 1px dashed #cbd5e1;">
-          <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
-          <h4 style="color: #0f172a; font-weight: 700;">No Matching Resources Reported</h4>
-          <p style="color: #64748b; font-size: 13px; max-width: 500px; margin: 6px auto;">
-            No records matched your search in connected facility databases. <em>Note: This does not guarantee unavailability across non-participating clinics.</em>
-          </p>
-          <button class="btn btn-outline btn-sm" onclick="window.resetEmergencySearch()" style="margin-top: 10px;">Clear Search Filters</button>
-        </div>
-      `;
+        <div style="grid-column: 1 / -1;">
+          ${emptyState('search', 'No Matching Resources Reported',
+            `No records matched your search in connected facility databases. <em>Note: this does not guarantee unavailability across non-participating clinics.</em>`,
+            `<button type="button" class="btn btn-outline btn-sm" onclick="window.resetEmergencySearch()" style="margin-top:12px;">Clear Search Filters</button>`)}
+        </div>`;
       return;
     }
 
@@ -386,24 +729,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <div class="result-facility-info">
             <div class="facility-name">
-              <span>🏥</span> ${escapeHtml(item.facility)}
+              ${I('hospital', 15)} ${escapeHtml(item.facility)}
               <span class="badge badge-primary" style="font-size:10px;">${escapeHtml(item.facilityType)}</span>
             </div>
-            <div class="facility-address">📍 ${escapeHtml(item.address)}</div>
-            <div style="font-size:11px; color:#0369a1; margin-top:4px;">
-              📞 Dispatch: <strong>${escapeHtml(item.emergencyPhone || item.phone)}</strong>
+            <div class="facility-address">${I('map-pin', 13)} ${escapeHtml(item.address)}</div>
+            <div style="font-size:11px; color:#0369a1; margin-top:4px; display:inline-flex; align-items:center; gap:4px;">
+              ${I('phone-call', 12)} Dispatch: <strong>${escapeHtml(item.emergencyPhone || item.phone)}</strong>
             </div>
           </div>
         </div>
 
         <div class="result-card-footer">
           <span style="font-size:11px; color:#64748b;">Updated: ${escapeHtml(item.lastUpdated)}</span>
-          <button class="btn btn-primary btn-sm" onclick="window.openDirectConfirmationModal('${escapeHtml(item.id)}', '${escapeHtml(item.type)}', '${escapeHtml(item.facilityId)}')">
-            📞 Direct Confirm
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.openDirectConfirmationModal('${escapeHtml(item.id)}', '${escapeHtml(item.type)}', '${escapeHtml(item.facilityId)}')">
+            ${I('phone-call', 13)} Direct Confirm
           </button>
         </div>
       </div>
     `).join('');
+    resultsContainer.dataset.loaded = 'true';
   }
 
   const emergencyInput = document.getElementById('emergencySearchInput');
@@ -467,7 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       modalBody.innerHTML = `
         <div class="verification-notice">
-          <span>⚠️</span>
+          <span class="notice-icon">${I('alert-triangle', 18)}</span>
           <div>
             <strong>Mandatory Direct Confirmation Protocol</strong>
             <p style="margin-top:2px; font-size:12px;">
@@ -482,15 +826,19 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div class="call-confirm-box">
-          <div style="font-weight:700; color:#166534; font-size:14px;">🏥 ${escapeHtml(facility.facilityName)}</div>
-          <div style="font-size:12px; color:#14532d; margin-top:2px;">📍 ${escapeHtml(facility.address)}</div>
+          <div style="font-weight:700; color:#166534; font-size:14px; display:flex; align-items:center; gap:6px;">
+            ${I('hospital', 15)} ${escapeHtml(facility.facilityName)}
+          </div>
+          <div style="font-size:12px; color:#14532d; margin-top:2px; display:flex; align-items:center; gap:5px;">${I('map-pin', 12)} ${escapeHtml(facility.address)}</div>
           <div style="font-size:12px; color:#14532d; margin-top:4px;">Lead Officer: <strong>${escapeHtml(contact.coordinator || 'Duty Officer')}</strong></div>
 
           <a href="tel:${escapeHtml(contact.emergencyPhone || '')}" class="phone-dial-btn">
-            <span>📞 Call Emergency Dispatch: ${escapeHtml(contact.emergencyPhone || 'N/A')}</span>
+            ${I('phone-call', 17)}
+            <span>Call Emergency Dispatch: ${escapeHtml(contact.emergencyPhone || 'N/A')}</span>
           </a>
           <a href="tel:${escapeHtml(contact.phone || '')}" class="phone-dial-btn" style="background:#0284c7; margin-top:8px;">
-            <span>☎️ Call Desk Phone: ${escapeHtml(contact.phone || 'N/A')}</span>
+            ${I('phone', 17)}
+            <span>Call Desk Phone: ${escapeHtml(contact.phone || 'N/A')}</span>
           </a>
         </div>
 
@@ -525,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tableBody) return;
 
     fillFacilitySelectOnce(facilityFilter, 'All Connected Facilities');
-    showTableMessage(tableBody, 8, 'Loading medicine stock…');
+    showTableMessage(tableBody, 8, 'Loading medicine stock\u2026', 'pill');
 
     const medicines = await API.getMedicines({
       facilityId: facilityFilter ? facilityFilter.value : undefined,
@@ -534,9 +882,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (medicines.length === 0) {
-      showTableMessage(tableBody, 8, 'No medicine stock records found matching filters.');
+      tableBody.innerHTML = `
+        <tr><td colspan="8">
+          ${emptyStateIconOnly('pill', 'No medicine stock records found matching the filters.')}
+        </td></tr>`;
       return;
     }
+
+    const mayEdit = canWrite('medicines');
 
     tableBody.innerHTML = medicines.map(medicine => {
       const low = Number(medicine.quantity) <= Number(medicine.reorderLevel);
@@ -545,12 +898,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const pillText = critical ? 'Critical Low' : (low ? 'Low Stock' : 'In Stock');
       const facility = facilityById(medicine.facilityId);
 
+      const actions = mayEdit ? `
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-outline btn-sm icon-btn" data-sec="medicines" aria-label="Edit ${escapeHtml(medicine.medicineName)}" onclick="window.openEditMedicineModal('${escapeHtml(medicine.medicineId)}')">${I('edit', 14)}</button>
+          <button type="button" class="btn btn-outline btn-sm icon-btn danger" data-sec="medicines" aria-label="Delete ${escapeHtml(medicine.medicineName)}" onclick="window.deleteMedicine('${escapeHtml(medicine.medicineId)}', '${escapeHtml(medicine.medicineName)}')">${I('trash', 14)}</button>
+        </div>` : `<span class="readonly-note" title="${escapeHtml(roleHintFor('medicines'))}">${I('lock', 13)} Read-only</span>`;
+
       return `
         <tr>
           <td><code style="font-weight:700; color:#0284c7;">${escapeHtml(medicine.medicineId)}</code></td>
           <td>
             <div style="font-weight:700; color:#0f172a;">${escapeHtml(medicine.medicineName)}</div>
-            <div style="font-size:12px; color:#64748b;">Batch: ${escapeHtml(medicine.batchNumber || 'N/A')} • Exp: ${escapeHtml(medicine.expiryDate || 'N/A')}</div>
+            <div style="font-size:12px; color:#64748b;">Batch: ${escapeHtml(medicine.batchNumber || 'N/A')} &middot; Exp: ${escapeHtml(medicine.expiryDate || 'N/A')}</div>
           </td>
           <td><span class="badge badge-primary" style="font-size:11px;">${escapeHtml(medicine.category)}</span></td>
           <td>
@@ -563,17 +922,16 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size:11px; color:#64748b;">${escapeHtml(facility ? facility.facilityType : '')}</div>
           </td>
           <td style="font-size:12px; color:#64748b;">${escapeHtml(medicine.lastUpdated)}</td>
-          <td>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-outline btn-sm admin-only-action" onclick="window.openEditMedicineModal('${escapeHtml(medicine.medicineId)}')" title="Edit stock">✏️</button>
-              <button class="btn btn-outline btn-sm admin-only-action" onclick="window.deleteMedicine('${escapeHtml(medicine.medicineId)}')" style="color:#ef4444;" title="Delete record">🗑️</button>
-            </div>
-          </td>
+          <td>${actions}</td>
         </tr>
       `;
     }).join('');
 
-    applyRolePermissions();
+    applyRbac();
+  }
+
+  function emptyStateIconOnly(icon, message) {
+    return `<div class="table-message">${I(icon, 18)}<span>${escapeHtml(message)}</span></div>`;
   }
 
   const pharmaSearch = document.getElementById('pharmaSearchInput');
@@ -584,6 +942,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (pharmaLowStock) pharmaLowStock.addEventListener('change', () => renderPharmacy());
 
   window.openAddMedicineModal = function () {
+    if (!guardWrite('medicines')) return;
+
     document.getElementById('medFormTitle').textContent = 'Add Medicine Stock Record';
     document.getElementById('medFormId').value = '';
     document.getElementById('medFormName').value = '';
@@ -591,7 +951,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('medFormQty').value = '50';
     document.getElementById('medFormUnit').value = 'Ampoules';
     document.getElementById('medFormReorder').value = '25';
-    document.getElementById('medFormBatch').value = 'BAT-2026';
+    document.getElementById('medFormBatch').value = '';
     document.getElementById('medicineForm').dataset.expiryDate = '';
 
     fillFacilitySelect(document.getElementById('medFormFacility'));
@@ -599,6 +959,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.openEditMedicineModal = async function (id) {
+    if (!guardWrite('medicines')) return;
     try {
       const medicine = await API.getMedicine(id);
       document.getElementById('medFormTitle').textContent = `Edit Stock: ${medicine.medicineName}`;
@@ -658,18 +1019,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         closeModal('medicineModal');
         renderCurrentTab();
+        updateBadges();
       } catch (error) {
         showToast(error.message, 'error');
       }
     });
   }
 
-  window.deleteMedicine = async function (id) {
-    if (!confirm(`Are you sure you want to delete medicine record ${id}?`)) return;
+  window.deleteMedicine = async function (id, name) {
+    const confirmed = await confirmDelete(
+      'Delete Medicine Record',
+      `Medicine record <strong>${escapeHtml(id)}</strong>${name ? ` (${escapeHtml(name)})` : ''} will be removed from the pharmacy inventory permanently. This also clears any alert generated for it (TC-08).`
+    );
+    if (!confirmed) return;
     try {
       await API.deleteMedicine(id);
-      showToast(`Medicine ${id} removed`, 'info');
+      showToast(`Medicine ${id} removed`, 'success');
       renderCurrentTab();
+      updateBadges();
     } catch (error) {
       showToast(error.message, 'error');
     }
@@ -685,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tableBody) return;
 
     fillFacilitySelectOnce(facilityFilter, 'All Connected Blood Banks');
-    showTableMessage(tableBody, 8, 'Loading blood stock…');
+    showTableMessage(tableBody, 8, 'Loading blood stock\u2026', 'droplet');
 
     const [allStock, records] = await Promise.all([
       API.getBloodStock(),
@@ -698,12 +1065,23 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBloodMatrix('bloodBankMatrix', allStock);
 
     if (records.length === 0) {
-      showTableMessage(tableBody, 8, 'No blood stock records match selected filters.');
+      tableBody.innerHTML = `
+        <tr><td colspan="8">
+          ${emptyStateIconOnly('droplet', 'No blood stock records match the selected filters.')}
+        </td></tr>`;
       return;
     }
 
+    const mayEdit = canWrite('blood-stock');
+
     tableBody.innerHTML = records.map(record => {
       const facility = facilityById(record.facilityId);
+      const actions = mayEdit ? `
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-outline btn-sm" data-sec="blood-stock" onclick="window.openEditBloodModal('${escapeHtml(record.recordId)}')">${I('edit', 13)} Edit Units</button>
+          <button type="button" class="btn btn-outline btn-sm icon-btn danger" data-sec="blood-stock" aria-label="Delete blood record ${escapeHtml(record.recordId)}" onclick="window.deleteBlood('${escapeHtml(record.recordId)}', '${escapeHtml(record.bloodGroup)}')">${I('trash', 14)}</button>
+        </div>` : `<span class="readonly-note" title="${escapeHtml(roleHintFor('blood-stock'))}">${I('lock', 13)} Read-only</span>`;
+
       return `
         <tr>
           <td><code style="font-weight:700; color:#dc2626;">${escapeHtml(record.recordId)}</code></td>
@@ -716,17 +1094,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size:11px; color:#64748b;">${escapeHtml(record.storageTemp || '2°C - 6°C')}</div>
           </td>
           <td style="font-size:12px; color:#64748b;">${escapeHtml(record.lastUpdated)}</td>
-          <td>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-outline btn-sm admin-only-action" onclick="window.openEditBloodModal('${escapeHtml(record.recordId)}')">✏️ Edit Units</button>
-              <button class="btn btn-outline btn-sm admin-only-action" onclick="window.deleteBlood('${escapeHtml(record.recordId)}')" style="color:#ef4444;">🗑️</button>
-            </div>
-          </td>
+          <td>${actions}</td>
         </tr>
       `;
     }).join('');
 
-    applyRolePermissions();
+    applyRbac();
   }
 
   const bloodGroupFilter = document.getElementById('bloodGroupFilter');
@@ -735,6 +1108,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (bloodFacilityFilter) bloodFacilityFilter.addEventListener('change', () => renderBloodBank());
 
   window.openAddBloodModal = function () {
+    if (!guardWrite('blood-stock')) return;
+
     document.getElementById('bloodFormTitle').textContent = 'Add Blood Unit Record';
     document.getElementById('bloodFormId').value = '';
     document.getElementById('bloodFormGroup').value = 'O+';
@@ -747,6 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.openEditBloodModal = async function (id) {
+    if (!guardWrite('blood-stock')) return;
     try {
       const record = await API.getBloodStockRecord(id);
       document.getElementById('bloodFormTitle').textContent = `Update Blood Units: ${record.bloodGroup} (${record.component})`;
@@ -792,18 +1168,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         closeModal('bloodModal');
         renderCurrentTab();
+        updateBadges();
       } catch (error) {
         showToast(error.message, 'error');
       }
     });
   }
 
-  window.deleteBlood = async function (id) {
-    if (!confirm(`Remove blood stock record ${id}?`)) return;
+  window.deleteBlood = async function (id, groupName) {
+    const confirmed = await confirmDelete(
+      'Delete Blood Stock Record',
+      `Blood record <strong>${escapeHtml(id)}</strong>${groupName ? ` (${escapeHtml(groupName)})` : ''} will be removed from the transfusion ledger permanently.`
+    );
+    if (!confirmed) return;
     try {
       await API.deleteBloodStock(id);
-      showToast(`Blood record ${id} removed`, 'info');
+      showToast(`Blood record ${id} removed`, 'success');
       renderCurrentTab();
+      updateBadges();
     } catch (error) {
       showToast(error.message, 'error');
     }
@@ -816,13 +1198,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('hospitalTableBody');
     if (!tableBody) return;
 
-    showTableMessage(tableBody, 8, 'Loading hospital resources…');
+    showTableMessage(tableBody, 8, 'Loading hospital resources\u2026', 'bed');
     const resources = await API.getHospitalResources();
 
     if (resources.length === 0) {
-      showTableMessage(tableBody, 8, 'No hospital resources recorded.');
+      tableBody.innerHTML = `
+        <tr><td colspan="8">
+          ${emptyStateIconOnly('bed', 'No hospital resources recorded yet.')}
+        </td></tr>`;
       return;
     }
+
+    const mayEdit = canWrite('hospital-resources');
 
     tableBody.innerHTML = resources.map(resource => {
       const facility = facilityById(resource.facilityId);
@@ -830,6 +1217,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const occupancy = resource.totalCapacity > 0
         ? Math.round(((resource.totalCapacity - resource.availableQuantity) / resource.totalCapacity) * 100)
         : 0;
+
+      const actions = mayEdit
+        ? `<button type="button" class="btn btn-outline btn-sm" data-sec="hospital-resources" onclick="window.openEditHospitalResModal('${escapeHtml(resource.resourceId)}')">${I('edit', 13)} Adjust</button>`
+        : `<span class="readonly-note" title="${escapeHtml(roleHintFor('hospital-resources'))}">${I('lock', 13)} Read-only</span>`;
 
       return `
         <tr>
@@ -848,22 +1239,20 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
               <span>Occupancy</span><span>${occupancy}%</span>
             </div>
-            <div style="height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
-              <div style="width:${Math.max(0, Math.min(100, occupancy))}%; height:100%; background:${occupancy > 85 ? '#ef4444' : '#0284c7'};"></div>
-            </div>
+            <div class="utilization-bar"><div class="utilization-fill" style="width:${Math.max(0, Math.min(100, occupancy))}%; background:${occupancy > 85 ? '#ef4444' : '#0284c7'};"></div></div>
           </td>
           <td style="font-size:12px; color:#64748b;">${escapeHtml(resource.lastUpdated)}</td>
-          <td>
-            <button class="btn btn-outline btn-sm admin-only-action" onclick="window.openEditHospitalResModal('${escapeHtml(resource.resourceId)}')">✏️ Adjust</button>
-          </td>
+          <td>${actions}</td>
         </tr>
       `;
     }).join('');
 
-    applyRolePermissions();
+    applyRbac();
   }
 
   window.openAddHospitalResModal = function () {
+    if (!guardWrite('hospital-resources')) return;
+
     document.getElementById('hospFormTitle').textContent = 'Add Hospital Medical Resource';
     document.getElementById('hospFormId').value = '';
     document.getElementById('hospFormName').value = '';
@@ -878,6 +1267,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.openEditHospitalResModal = async function (id) {
+    if (!guardWrite('hospital-resources')) return;
     try {
       const resource = await API.getHospitalResource(id);
       document.getElementById('hospFormTitle').textContent = `Adjust Capacity: ${resource.resourceName}`;
@@ -935,6 +1325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         closeModal('hospitalModal');
         renderCurrentTab();
+        updateBadges();
       } catch (error) {
         showToast(error.message, 'error');
       }
@@ -948,29 +1339,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('alertsListContainer');
     if (!container) return;
 
-    container.innerHTML = '<div style="padding:30px;text-align:center;color:#64748b;">Loading live alerts…</div>';
+    container.innerHTML = spinnerText('Loading live alerts...') ;
     const alerts = await API.getAlerts();
+    updateBadges();
 
     if (alerts.length === 0) {
-      container.innerHTML = `
-        <div style="padding:40px; text-align:center; background:white; border-radius:12px; border:1px solid #e2e8f0;">
-          <div style="font-size:32px; margin-bottom:8px;">🎉</div>
-          <h4 style="color:#0f172a; font-weight:700;">No Active Low-Stock Alerts</h4>
-          <p style="color:#64748b; font-size:13px;">All medicines, blood units, and hospital assets are currently maintained above reorder thresholds.</p>
-        </div>
-      `;
+      container.innerHTML = emptyState(
+        'check-circle',
+        'No Active Low-Stock Alerts',
+        'All medicines, blood units, and hospital assets are currently maintained above reorder thresholds.'
+      );
       return;
     }
 
     container.innerHTML = alerts.map(alert => {
       const critical = alert.severity === 'Critical';
+      const resource = resourceForType(alert.resourceType);
+      const mayRestock = resource && canWrite(resource);
+
+      const actionArea = mayRestock
+        ? `<button type="button" class="btn btn-primary btn-sm" onclick="window.quickRestockAlert('${escapeHtml(alert.resourceType)}', '${escapeHtml(alert.resourceId)}')">
+             ${I('zap', 13)} Replenish Stock
+           </button>`
+        : `<span class="readonly-note" title="${escapeHtml(roleHintFor(resource))}">${I('lock', 13)} Read-only session</span>`;
+
       return `
-        <div class="result-card" style="border-left: 5px solid ${critical ? '#ef4444' : '#f59e0b'}; margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-              <div style="display:flex; align-items:center; gap:8px;">
+        <div class="result-card alert-card" style="border-left: 5px solid ${critical ? '#ef4444' : '#f59e0b'};">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+            <div style="min-width:0;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span class="status-pill ${critical ? 'status-critical' : 'status-low'}">${escapeHtml(alert.severity)} Flag</span>
-                <span style="font-size:12px; color:#64748b;">${escapeHtml(alert.resourceType)} • Ref: <code>${escapeHtml(alert.resourceId)}</code></span>
+                <span style="font-size:12px; color:#64748b;">${escapeHtml(alert.resourceType)} &middot; Ref: <code>${escapeHtml(alert.resourceId)}</code></span>
               </div>
               <h4 style="font-size:17px; font-weight:700; color:#0f172a; margin-top:6px;">${escapeHtml(alert.resourceName)}</h4>
               <p style="color:#475569; font-size:13px; margin:4px 0 10px 0;">${escapeHtml(alert.message)}</p>
@@ -979,12 +1378,12 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
 
-            <div style="text-align:right;">
+            <div style="text-align:right; margin-left:auto;">
               <div style="font-size:22px; font-weight:800; color:${critical ? '#dc2626' : '#d97706'};">
                 ${alert.currentQuantity} <span style="font-size:12px; font-weight:500;">/ Reorder ${alert.threshold} ${escapeHtml(alert.unit)}</span>
               </div>
               <div style="margin-top:10px; display:flex; gap:6px; justify-content:flex-end;">
-                <button class="btn btn-primary btn-sm" onclick="window.quickRestockAlert('${escapeHtml(alert.resourceType)}', '${escapeHtml(alert.resourceId)}')">⚡ Replenish Stock</button>
+                ${actionArea}
               </div>
             </div>
           </div>
@@ -994,6 +1393,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.quickRestockAlert = async function (type, id) {
+    const resource = resourceForType(type);
+    if (!guardWrite(resource)) return;
     try {
       if (type === 'Medicine') {
         const medicine = await API.getMedicine(id);
@@ -1046,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('facilitiesGrid');
     if (!container) return;
 
-    container.innerHTML = '<div style="padding:30px;text-align:center;color:#64748b;">Loading connected facilities…</div>';
+    container.innerHTML = spinnerText('Loading connected facilities...');
 
     const [facilities, medicines, bloodStock] = await Promise.all([
       API.getFacilities(),
@@ -1055,15 +1456,27 @@ document.addEventListener('DOMContentLoaded', () => {
     ]);
     state.facilities = facilities;
 
+    if (facilities.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column:1/-1;">
+          ${emptyState('map-pin', 'No Facilities Connected Yet',
+            'Connect the first hospital, pharmacy or blood bank to bring facilities into the network.',
+            canWrite('facilities')
+              ? '<button type="button" class="btn btn-primary btn-sm" onclick="window.openAddFacilityModal()" style="margin-top:12px;">Connect New Facility</button>'
+              : '')}
+        </div>`;
+      return;
+    }
+
     container.innerHTML = facilities.map(facility => {
-      let icon = '🏥';
+      let icon = 'hospital';
       let tagClass = 'badge-primary';
       if (facility.facilityType === 'Pharmacy') {
-        icon = '💊';
+        icon = 'pill';
         tagClass = 'badge-success';
       }
       if (facility.facilityType === 'Blood Bank') {
-        icon = '🩸';
+        icon = 'droplet';
         tagClass = 'badge-danger';
       }
 
@@ -1077,28 +1490,28 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="result-card">
           <div>
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <span class="badge ${tagClass}">${icon} ${escapeHtml(facility.facilityType)}</span>
-              <span style="font-size:11px; color:#10b981; font-weight:700;">✓ Network Verified</span>
+              <span class="badge ${tagClass}" style="display:inline-flex; align-items:center; gap:5px;">${I(icon, 13)} ${escapeHtml(facility.facilityType)}</span>
+              <span style="font-size:11px; color:#10b981; font-weight:700; display:inline-flex; align-items:center; gap:4px;">${I('shield-check', 13)} Network Verified</span>
             </div>
             <h4 style="font-size:18px; font-weight:700; color:#0f172a; margin-top:8px;">${escapeHtml(facility.facilityName)}</h4>
-            <p style="color:#64748b; font-size:12px; margin-top:4px;">📍 ${escapeHtml(facility.address)}</p>
+            <p style="color:#64748b; font-size:12px; margin-top:4px; display:flex; align-items:center; gap:5px;">${I('map-pin', 13)} ${escapeHtml(facility.address)}</p>
 
-            <div style="background:#f8fafc; border-radius:8px; padding:10px; margin:12px 0; font-size:12px;">
-              <div>👤 Coordinator: <strong>${escapeHtml(contact.coordinator)}</strong></div>
-              <div style="margin-top:2px;">📞 Main Line: <strong>${escapeHtml(contact.phone)}</strong></div>
-              <div style="color:#dc2626; margin-top:2px;">🚨 24/7 Hotline: <strong>${escapeHtml(contact.emergencyPhone)}</strong></div>
-              <div style="color:#0369a1; margin-top:2px;">✉️ ${escapeHtml(contact.email)}</div>
+            <div class="contact-box">
+              <div style="display:flex; align-items:center; gap:6px;">${I('user', 13)} Coordinator: <strong>${escapeHtml(contact.coordinator)}</strong></div>
+              <div style="margin-top:4px; display:flex; align-items:center; gap:6px;">${I('phone', 13)} Main Line: <strong>${escapeHtml(contact.phone)}</strong></div>
+              <div style="color:#dc2626; margin-top:4px; display:flex; align-items:center; gap:6px;">${I('siren', 13)} 24/7 Hotline: <strong>${escapeHtml(contact.emergencyPhone)}</strong></div>
+              <div style="color:#0369a1; margin-top:4px; display:flex; align-items:center; gap:6px;">${I('mail', 13)} ${escapeHtml(contact.email)}</div>
             </div>
 
-            <div style="display:flex; gap:12px; font-size:12px; color:#475569;">
-              <div>💊 <strong>${medCount}</strong> Meds Tracked</div>
-              <div>🩸 <strong>${bloodCount}</strong> Blood Units</div>
+            <div style="display:flex; gap:14px; font-size:12px; color:#475569; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:5px;">${I('pill', 13)} <strong>${medCount}</strong> Meds Tracked</div>
+              <div style="display:flex; align-items:center; gap:5px;">${I('droplet', 13)} <strong>${bloodCount}</strong> Blood Units</div>
             </div>
           </div>
 
           <div style="margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; color:#94a3b8;">Audited: ${escapeHtml(facility.lastAudit || 'Recent')}</span>
-            <a href="tel:${escapeHtml(contact.phone || '')}" class="btn btn-outline btn-sm">Direct Call</a>
+            <span style="font-size:11px; color:#64748b; display:inline-flex; align-items:center; gap:4px;">${I('clock', 12)} Audited: ${escapeHtml(facility.lastAudit || 'Recent')}</span>
+            <a href="tel:${escapeHtml(contact.phone || '')}" class="btn btn-outline btn-sm">${I('phone', 13)} Direct Call</a>
           </div>
         </div>
       `;
@@ -1106,6 +1519,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.openAddFacilityModal = function () {
+    if (!guardWrite('facilities')) return;
+
     document.getElementById('facFormName').value = '';
     document.getElementById('facFormType').value = 'Hospital';
     document.getElementById('facFormAddress').value = '';
@@ -1214,7 +1629,22 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // =====================================================================
-  // MODAL UTILITIES
+  // RBAC write guard for user-initiated actions
+  // =====================================================================
+  function guardWrite(resource) {
+    if (!state.user) {
+      openAuthGate('Sign in to perform this action.');
+      return false;
+    }
+    if (!resource) return true; // non-resource actions (e.g. confirm modal)
+    if (canWrite(resource)) return true;
+
+    showToast(`Not permitted: ${roleHintFor(resource)}`, 'error');
+    return false;
+  }
+
+  // =====================================================================
+  // MODAL UTILITIES + DESTRUCTIVE ACTION CONFIRMATION
   // =====================================================================
   window.openModal = function (id) {
     const modal = document.getElementById(id);
@@ -1224,21 +1654,63 @@ document.addEventListener('DOMContentLoaded', () => {
   window.closeModal = function (id) {
     const modal = document.getElementById(id);
     if (modal) modal.classList.remove('active');
+    if (id === 'deleteModal') settleConfirm(false);
   };
 
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', event => {
       if (event.target === overlay) {
         overlay.classList.remove('active');
+        if (overlay.id === 'deleteModal') settleConfirm(false);
       }
     });
   });
 
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
-      document.querySelectorAll('.modal-overlay.active').forEach(modal => modal.classList.remove('active'));
+      if (confirmState) {
+        settleConfirm(false);
+      } else {
+        document.querySelectorAll('.modal-overlay.active').forEach(modal => modal.classList.remove('active'));
+      }
+      toggleUserMenu(false);
     }
   });
+
+  let confirmState = null;
+  const deleteModal = document.getElementById('deleteModal');
+  const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+  const deleteCancelBtn = document.getElementById('deleteCancelBtn');
+  const deleteModalCloseBtn = document.getElementById('deleteModalCloseBtn');
+
+  function settleConfirm(result) {
+    if (!confirmState) return;
+    const settle = confirmState.resolve;
+    confirmState = null;
+    if (deleteModal) deleteModal.classList.remove('active');
+    settle(result);
+  }
+
+  if (deleteConfirmBtn) deleteConfirmBtn.addEventListener('click', () => settleConfirm(true));
+  if (deleteCancelBtn) deleteCancelBtn.addEventListener('click', () => settleConfirm(false));
+  if (deleteModalCloseBtn) deleteModalCloseBtn.addEventListener('click', () => settleConfirm(false));
+
+  /**
+   * Styled confirmation dialog for destructive actions.
+   * Returns a Promise<boolean> resolved with the user's decision.
+   */
+  function confirmDelete(title, messageHtml) {
+    const titleEl = document.getElementById('deleteModalTitle');
+    const messageEl = document.getElementById('deleteModalMessage');
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.innerHTML = messageHtml;
+
+    confirmState = null;
+    openModal('deleteModal');
+    return new Promise(resolve => {
+      confirmState = { resolve };
+    });
+  }
 
   // =====================================================================
   // DATA BOOTSTRAP
@@ -1253,13 +1725,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function boot() {
+  async function bootApplication() {
     await loadFacilities();
-    applyRolePermissions();
-    switchTab('dashboard');
+    applyRbac();
+    switchTab(state.currentTab || 'dashboard');
   }
 
-  boot();
+  // Start: validate any stored session, otherwise open the sign-in gate.
+  tryRestoreSession();
+  setLoginLoading(false);
 
   // Exposed for the inline quick-navigation buttons in index.html.
   window.thriveState = state;

@@ -76,10 +76,12 @@ public class SeedDataService {
         medicineRepository.saveAll(nullSafe(data.medicines()));
         bloodStockRepository.saveAll(nullSafe(data.bloodStock()));
         hospitalResourceRepository.saveAll(nullSafe(data.hospitalResources()));
-        appUserRepository.saveAll(nullSafe(data.users()));
-        log.info("Seeded demo database: {} facilities, {} medicines, {} blood records, {} resources, {} users",
+        // User accounts are owned by the RBAC layer (DemoUserSeeder), which also
+        // supplies password hashes. Loading the fixture's user rows here would
+        // overwrite those hashes and break login.
+        log.info("Seeded demo database: {} facilities, {} medicines, {} blood records, {} resources",
                 size(data.facilities()), size(data.medicines()), size(data.bloodStock()),
-                size(data.hospitalResources()), size(data.users()));
+                size(data.hospitalResources()));
     }
 
     private SeedData loadSeedData() {

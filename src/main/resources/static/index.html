@@ -9,15 +9,11 @@
 </head>
 <body>
 
-  <!-- ACADEMIC BANNER -->
-  
-    
-
   <!-- MAIN HEADER -->
   <header class="main-header">
     <div class="brand-section">
       <div class="brand-logo-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 2v20M2 12h20"/>
         </svg>
       </div>
@@ -28,24 +24,44 @@
     </div>
 
     <div class="header-controls">
-      <div style="font-size: 12px; color: var(--slate-500); display: flex; align-items: center; gap: 6px;">
-        <span></span> <span id="liveClock">Loading time...</span>
+      <div class="header-clock" title="Local date and time">
+        <svg class="i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="liveClock">Loading time...</span>
       </div>
 
-      <!-- ROLE SWITCHER (Chapter 3 & 8) -->
-      <div class="role-badge-box">
-        <span class="role-label">Role:</span>
-        <select id="userRoleSelect" class="role-select">
-          <option value="System Admin" selected> System Admin</option>
-          <option value="Hospital Staff"> Hospital Staff</option>
-          <option value="Pharmacy Staff"> Pharmacy Staff</option>
-          <option value="Blood Bank Officer"> Blood Bank Officer</option>
-          <option value="Emergency Search User">🔍 Emergency Search User</option>
-        </select>
+      <!-- SESSION / RBAC ACCOUNT CHIP (Chapter 3 & 8) -->
+      <div class="session-chip" id="sessionChip">
+        <button type="button" class="user-chip-btn" id="userChipBtn" aria-haspopup="menu" aria-expanded="false" title="Account &amp; access">
+          <span class="user-avatar" id="userAvatar" aria-hidden="true">--</span>
+          <span class="user-chip-text">
+            <span class="user-chip-name" id="userNameText">Signed out</span>
+            <span class="user-chip-role" id="userRoleText">&nbsp;</span>
+          </span>
+          <svg class="i caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="user-menu" id="userMenu" role="menu" aria-label="Account menu" hidden>
+          <div class="user-menu-head">
+            <span class="user-avatar lg" id="userMenuAvatar" aria-hidden="true">--</span>
+            <div>
+              <strong id="userMenuName">-</strong>
+              <span id="userMenuMeta" class="user-menu-meta">-</span>
+            </div>
+          </div>
+          <p class="user-menu-privileges" id="userMenuPrivileges"></p>
+          <button type="button" class="user-menu-item" id="switchAccountBtn" role="menuitem">
+            <svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Switch account
+          </button>
+          <button type="button" class="user-menu-item danger" id="signOutBtn" role="menuitem">
+            <svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Sign out
+          </button>
+        </div>
       </div>
 
       <div class="quick-action-btns">
-        <button class="btn btn-primary btn-sm" onclick="window.switchTabToEmergency()">
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.switchTabToEmergency()">
+          <svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13a5 5 0 0 1 10 0v5H7v-5Z"/><path d="M4 21h16"/><path d="M4 21v-2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M12 4V2.5"/><path d="M5.6 6.6 4.4 5.4"/><path d="M18.4 6.6l1.2-1.2"/></svg>
           Emergency Finder
         </button>
       </div>
@@ -56,39 +72,45 @@
   <div class="app-container">
 
     <!-- SIDEBAR NAVIGATION -->
-    <nav class="sidebar">
+    <nav class="sidebar" aria-label="Primary">
       <div>
         <div class="nav-group-title">Core Operations</div>
         <ul class="nav-links">
           <li>
             <a href="#" class="nav-item active" data-tab="dashboard">
-              <span></span> Dashboard Overview
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+              Dashboard Overview
             </a>
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="emergency-search">
-              <span></span> Emergency Search
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13a5 5 0 0 1 10 0v5H7v-5Z"/><path d="M4 21h16"/><path d="M4 21v-2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M12 4V2.5"/><path d="M5.6 6.6 4.4 5.4"/><path d="M18.4 6.6l1.2-1.2"/></svg></span>
+              Emergency Search
               <span class="badge badge-danger">Live</span>
             </a>
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="pharmacy">
-              <span></span> Pharmacy Inventory
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg></span>
+              Pharmacy Inventory
             </a>
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="blood-bank">
-              <span></span> Blood Bank Tracking
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></span>
+              Blood Bank Tracking
             </a>
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="hospital">
-              <span></span> Hospital Resources
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg></span>
+              Hospital Resources
             </a>
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="alerts">
-              <span></span> Low-Stock Alerts
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+              Low-Stock Alerts
               <span id="sidebarAlertBadge" class="badge badge-warning">0</span>
             </a>
           </li>
@@ -98,19 +120,21 @@
         <ul class="nav-links">
           <li>
             <a href="#" class="nav-item" data-tab="facilities">
-              <span></span> Connected Facilities
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></span>
+              Connected Facilities
             </a>
           </li>
           <li>
             <a href="#" class="nav-item" data-tab="api-explorer">
-              <span>⚙️</span> API &amp; Schema Explorer
+              <span class="nav-icon"><svg class="i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              API &amp; Schema Explorer
             </a>
           </li>
         </ul>
       </div>
 
       <div class="sidebar-bottom-card">
-        <h4><span></span> Direct Confirmation</h4>
+        <h4><svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.05 5A5 5 0 0 1 19 8.95"/><path d="M15.05 1A9 9 0 0 1 23 8.94"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Direct Confirmation</h4>
         <p>Resource availability reflects reported records. Before dispatching emergency cases, always confirm directly with the reporting facility.</p>
         <div style="font-weight: 700; color: #0369a1; font-size: 11px;">Central Helpline: 108 / 112</div>
       </div>
@@ -129,7 +153,10 @@
             <p>Unified real-time monitoring across regional hospitals, pharmacies, and blood banks.</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-primary" onclick="window.switchTabToEmergency()">🚨 Search Resource</button>
+            <button type="button" class="btn btn-primary" onclick="window.switchTabToEmergency()">
+              <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13a5 5 0 0 1 10 0v5H7v-5Z"/><path d="M4 21h16"/><path d="M4 21v-2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M12 4V2.5"/><path d="M5.6 6.6 4.4 5.4"/><path d="M18.4 6.6l1.2-1.2"/></svg>
+              Search Resource
+            </button>
           </div>
         </div>
 
@@ -138,34 +165,34 @@
           <div class="metric-card primary">
             <div class="metric-header">
               <span class="metric-title">Connected Facilities</span>
-              <div class="metric-icon icon-primary">🏢</div>
+              <div class="metric-icon icon-primary"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div>
             </div>
-            <div id="dashCountFacilities" class="metric-value">6</div>
+            <div id="dashCountFacilities" class="metric-value">0</div>
             <div class="metric-sub">Hospitals, Pharmacies &amp; Blood Banks</div>
           </div>
 
           <div class="metric-card secondary">
             <div class="metric-header">
               <span class="metric-title">Medicine Inventory</span>
-              <div class="metric-icon icon-secondary"></div>
+              <div class="metric-icon icon-secondary"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
             </div>
-            <div id="dashCountMedicines" class="metric-value">1,400+</div>
-            <div class="metric-sub">Across 12 categorized essential drugs</div>
+            <div id="dashCountMedicines" class="metric-value">0</div>
+            <div class="metric-sub">Across categorized essential drugs</div>
           </div>
 
           <div class="metric-card danger">
             <div class="metric-header">
               <span class="metric-title">Blood Units On Hand</span>
-              <div class="metric-icon icon-danger"></div>
+              <div class="metric-icon icon-danger"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div>
             </div>
-            <div id="dashCountBlood" class="metric-value">120+</div>
+            <div id="dashCountBlood" class="metric-value">0</div>
             <div class="metric-sub">All 8 ABO/Rh blood groups tracked</div>
           </div>
 
           <div class="metric-card warning">
             <div class="metric-header">
               <span class="metric-title">Low-Stock Alerts</span>
-              <div class="metric-icon icon-warning"></div>
+              <div class="metric-icon icon-warning"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
             </div>
             <div id="dashCountAlerts" class="metric-value">0</div>
             <div class="metric-sub">At or below reorder threshold</div>
@@ -174,9 +201,9 @@
           <div class="metric-card primary">
             <div class="metric-header">
               <span class="metric-title">ICU &amp; Emergency Beds</span>
-              <div class="metric-icon icon-primary">🛏️</div>
+              <div class="metric-icon icon-primary"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg></div>
             </div>
-            <div id="dashCountBeds" class="metric-value">17</div>
+            <div id="dashCountBeds" class="metric-value">0</div>
             <div class="metric-sub">Immediate critical care capacity</div>
           </div>
         </div>
@@ -184,8 +211,8 @@
         <!-- Blood Units Quick Glance Matrix -->
         <div class="section-card">
           <div class="section-card-header">
-            <h3 class="section-card-title"><span></span> Regional Blood Bank Availability Matrix</h3>
-            <button class="btn btn-outline btn-sm" onclick="window.switchTabToBlood()">Full Blood Ledger →</button>
+            <h3 class="section-card-title"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> Regional Blood Bank Availability Matrix</h3>
+            <button type="button" class="btn btn-outline btn-sm" onclick="window.switchTabToBlood()">Full Blood Ledger <svg class="i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
           </div>
           <div class="section-card-body">
             <div id="dashBloodMatrix" class="blood-matrix"></div>
@@ -195,8 +222,8 @@
         <!-- Recent Critical Alerts -->
         <div class="section-card">
           <div class="section-card-header">
-            <h3 class="section-card-title"><span></span> Active Low-Stock &amp; Critical Resource Alerts</h3>
-            <button class="btn btn-outline btn-sm" onclick="window.switchTabToAlerts()">View All Alerts →</button>
+            <h3 class="section-card-title"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Active Low-Stock &amp; Critical Resource Alerts</h3>
+            <button type="button" class="btn btn-outline btn-sm" onclick="window.switchTabToAlerts()">View All Alerts <svg class="i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
           </div>
           <div class="section-card-body" style="padding: 0;">
             <div id="dashAlertsList"></div>
@@ -209,15 +236,15 @@
            =================================================================== -->
       <section id="tab-emergency-search" class="tab-pane">
         <div class="emergency-banner">
-          <h3> Emergency Healthcare Resource Search</h3>
+          <h3><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13a5 5 0 0 1 10 0v5H7v-5Z"/><path d="M4 21h16"/><path d="M4 21v-2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M12 4V2.5"/><path d="M5.6 6.6 4.4 5.4"/><path d="M18.4 6.6l1.2-1.2"/></svg> Emergency Healthcare Resource Search</h3>
           <p>
             Quickly locate emergency medicines, blood group reserves, and critical supplies across participating hospitals and pharmacies. Results display verified reporting facility and freshness timestamps.
           </p>
 
           <div class="search-mode-tabs">
-            <button class="search-mode-btn active" data-mode="all">All Resources</button>
-            <button class="search-mode-btn" data-mode="medicine">Medicines Only</button>
-            <button class="search-mode-btn" data-mode="blood">Blood Stock Only</button>
+            <button type="button" class="search-mode-btn active" data-mode="all">All Resources</button>
+            <button type="button" class="search-mode-btn" data-mode="medicine">Medicines Only</button>
+            <button type="button" class="search-mode-btn" data-mode="blood">Blood Stock Only</button>
           </div>
         </div>
 
@@ -226,32 +253,35 @@
             <!-- Search bar -->
             <div class="filter-bar">
               <div class="search-input-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="emergencySearchInput" class="search-input" placeholder="Type medicine name (e.g. Adrenaline, Meropenem) or blood group (e.g. O-, A+)...">
+                <span class="search-icon"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+                <input type="text" id="emergencySearchInput" class="search-input" aria-label="Search emergency resources" placeholder="Type medicine name (e.g. Adrenaline, Meropenem) or blood group (e.g. O-, A+)...">
               </div>
-              <button class="btn btn-outline" onclick="window.resetEmergencySearch()">Clear Filter</button>
+              <button type="button" class="btn btn-outline" onclick="window.resetEmergencySearch()">
+                <svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Clear Filter
+              </button>
             </div>
 
             <!-- Quick blood chips selector -->
-            <div id="searchBloodChipsWrapper" style="margin-bottom: 20px;">
+            <div id="searchBloodChipsWrapper" class="search-chips-wrapper" style="margin-bottom: 20px;">
               <span style="font-size: 13px; font-weight: 600; color: var(--slate-600); margin-right: 8px;">Filter Blood Group:</span>
               <div class="blood-selector-chips" style="display: inline-flex;">
-                <button class="blood-chip active" data-group="ALL">All</button>
-                <button class="blood-chip" data-group="O+">O+</button>
-                <button class="blood-chip" data-group="O-">O-</button>
-                <button class="blood-chip" data-group="A+">A+</button>
-                <button class="blood-chip" data-group="A-">A-</button>
-                <button class="blood-chip" data-group="B+">B+</button>
-                <button class="blood-chip" data-group="B-">B-</button>
-                <button class="blood-chip" data-group="AB+">AB+</button>
-                <button class="blood-chip" data-group="AB-">AB-</button>
+                <button type="button" class="blood-chip active" data-group="ALL">All</button>
+                <button type="button" class="blood-chip" data-group="O+">O+</button>
+                <button type="button" class="blood-chip" data-group="O-">O-</button>
+                <button type="button" class="blood-chip" data-group="A+">A+</button>
+                <button type="button" class="blood-chip" data-group="A-">A-</button>
+                <button type="button" class="blood-chip" data-group="B+">B+</button>
+                <button type="button" class="blood-chip" data-group="B-">B-</button>
+                <button type="button" class="blood-chip" data-group="AB+">AB+</button>
+                <button type="button" class="blood-chip" data-group="AB-">AB-</button>
               </div>
             </div>
 
             <!-- Search Results Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h4 style="font-size: 15px; font-weight: 700; color: var(--slate-800);" id="searchResultsCount">Search Results</h4>
-              <span style="font-size: 12px; color: var(--slate-500);"> Real-time query matching</span>
+              <span style="font-size: 12px; color: var(--slate-500); display: inline-flex; align-items: center; gap: 6px;"><svg class="i" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Real-time query matching</span>
             </div>
 
             <!-- Results Grid -->
@@ -270,7 +300,10 @@
             <p>Maintain medicine stocks, monitor reorder levels, and manage batch allocations.</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-primary admin-only-action" onclick="window.openAddMedicineModal()">+ Add Medicine Stock</button>
+            <button type="button" class="btn btn-primary data-sec" data-sec="medicines" onclick="window.openAddMedicineModal()">
+              <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              Add Medicine Stock
+            </button>
           </div>
         </div>
 
@@ -278,13 +311,13 @@
           <div class="section-card-body">
             <div class="filter-bar">
               <div class="search-input-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="pharmaSearchInput" class="search-input" placeholder="Search medicine name, category, or generic...">
+                <span class="search-icon"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+                <input type="text" id="pharmaSearchInput" class="search-input" aria-label="Search medicines" placeholder="Search medicine name, category, or generic...">
               </div>
-              <select id="pharmaFacilityFilter" class="filter-select">
+              <select id="pharmaFacilityFilter" class="filter-select" aria-label="Filter by facility">
                 <option value="ALL">All Facilities</option>
               </select>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--slate-700); cursor: pointer;">
+              <label class="filter-checkbox" for="pharmaLowStockFilter">
                 <input type="checkbox" id="pharmaLowStockFilter">
                 <span>Show Low-Stock Only (TC-07)</span>
               </label>
@@ -321,13 +354,16 @@
             <p>Track ABO/Rh blood groups, components (PRBC, Platelets, FFP), and storage conditions.</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-danger admin-only-action" onclick="window.openAddBloodModal()">+ Record Blood Units</button>
+            <button type="button" class="btn btn-danger data-sec" data-sec="blood-stock" onclick="window.openAddBloodModal()">
+              <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              Record Blood Units
+            </button>
           </div>
         </div>
 
         <div class="section-card">
           <div class="section-card-header">
-            <h3 class="section-card-title"><span></span> Group Reserve Status</h3>
+            <h3 class="section-card-title"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> Group Reserve Status</h3>
           </div>
           <div class="section-card-body">
             <div id="bloodBankMatrix" class="blood-matrix"></div>
@@ -337,7 +373,7 @@
         <div class="section-card">
           <div class="section-card-body">
             <div class="filter-bar">
-              <select id="bloodGroupFilter" class="filter-select">
+              <select id="bloodGroupFilter" class="filter-select" aria-label="Filter by blood group">
                 <option value="ALL">All Blood Groups</option>
                 <option value="O+">O Positive (O+)</option>
                 <option value="O-">O Negative (O-)</option>
@@ -349,7 +385,7 @@
                 <option value="AB-">AB Negative (AB-)</option>
               </select>
 
-              <select id="bloodFacilityFilter" class="filter-select">
+              <select id="bloodFacilityFilter" class="filter-select" aria-label="Filter by blood bank facility">
                 <option value="ALL">All Connected Blood Banks</option>
               </select>
             </div>
@@ -385,7 +421,10 @@
             <p>Coordinate intensive care beds, ventilator suites, medical oxygen, and monitors.</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-secondary admin-only-action" onclick="window.openAddHospitalResModal()">+ Add Hospital Resource</button>
+            <button type="button" class="btn btn-secondary data-sec" data-sec="hospital-resources" onclick="window.openAddHospitalResModal()">
+              <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              Add Hospital Resource
+            </button>
           </div>
         </div>
 
@@ -424,7 +463,7 @@
         </div>
 
         <div class="verification-notice">
-          <span>⚙️</span>
+          <span class="notice-icon"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
           <div>
             <strong>Configurable Reorder Rule (Section 5.5)</strong>
             <p style="margin-top: 2px;">
@@ -446,7 +485,10 @@
             <p>Authorized hospitals, medical stores, community pharmacies, and regional blood banks.</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-primary admin-only-action" onclick="window.openAddFacilityModal()">+ Connect New Facility</button>
+            <button type="button" class="btn btn-primary data-sec" data-sec="facilities" onclick="window.openAddFacilityModal()">
+              <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              Connect New Facility
+            </button>
           </div>
         </div>
 
@@ -454,7 +496,7 @@
       </section>
 
       <!-- ===================================================================
-           8. API & MONGODB SCHEMA EXPLORER (Chapter 7 & Appendix A)
+           8. API & SCHEMA EXPLORER (Chapter 7 & Appendix A)
            =================================================================== -->
       <section id="tab-api-explorer" class="tab-pane">
         <div class="page-header">
@@ -468,21 +510,24 @@
           <div class="metric-card">
             <span class="metric-title">Test Appendix A API Route</span>
             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
-              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/facilities')">GET /api/facilities</button>
-              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/medicines')">GET /api/medicines</button>
-              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/blood-stock')">GET /api/blood-stock</button>
-              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/alerts')">GET /api/alerts</button>
-              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/hospital-resources')">GET /api/hospital-resources</button>
-              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/users')">GET /api/users</button>
-              <button class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/dashboard/metrics')">GET /api/dashboard/metrics</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/facilities')">GET /api/facilities</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/medicines')">GET /api/medicines</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/blood-stock')">GET /api/blood-stock</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/alerts')">GET /api/alerts</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/hospital-resources')">GET /api/hospital-resources</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/users')">GET /api/users</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.testApiRoute('GET /api/dashboard/metrics')">GET /api/dashboard/metrics</button>
             </div>
           </div>
 
-          <div style="grid-column: span 2;">
+          <div style="grid-column: span 2; min-width: 0;">
             <div class="section-card" style="margin-bottom: 0;">
               <div class="section-card-header">
                 <span id="apiActiveRouteTitle" style="font-family: monospace; font-weight: 700; color: #0284c7;">API Response JSON Viewer</span>
-                <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('apiResponseJson').textContent); window.showToast('Copied JSON payload to clipboard', 'success');">📋 Copy Payload</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="window.copyApiResponse()">
+                  <svg class="i" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  Copy Payload
+                </button>
               </div>
               <div class="section-card-body" style="padding: 12px;">
                 <pre id="apiResponseJson" class="code-preview" style="max-height: 380px;">Loading database state...</pre>
@@ -502,7 +547,7 @@
     <div class="modal-dialog">
       <div class="modal-header">
         <h3 id="medFormTitle">Add Medicine Stock Record</h3>
-        <button class="modal-close-btn" onclick="window.closeModal('medicineModal')">&times;</button>
+        <button type="button" class="modal-close-btn" aria-label="Close" onclick="window.closeModal('medicineModal')"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>
       <form id="medicineForm">
         <div class="modal-body">
@@ -577,7 +622,7 @@
     <div class="modal-dialog">
       <div class="modal-header">
         <h3 id="bloodFormTitle">Add Blood Unit Record</h3>
-        <button class="modal-close-btn" onclick="window.closeModal('bloodModal')">&times;</button>
+        <button type="button" class="modal-close-btn" aria-label="Close" onclick="window.closeModal('bloodModal')"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>
       <form id="bloodForm">
         <div class="modal-body">
@@ -636,7 +681,7 @@
     <div class="modal-dialog">
       <div class="modal-header">
         <h3 id="hospFormTitle">Hospital Medical Resource</h3>
-        <button class="modal-close-btn" onclick="window.closeModal('hospitalModal')">&times;</button>
+        <button type="button" class="modal-close-btn" aria-label="Close" onclick="window.closeModal('hospitalModal')"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>
       <form id="hospitalForm">
         <div class="modal-body">
@@ -698,12 +743,15 @@
     <div class="modal-dialog">
       <div class="modal-header">
         <h3>Direct Confirmation Protocol</h3>
-        <button class="modal-close-btn" onclick="window.closeModal('confirmModal')">&times;</button>
+        <button type="button" class="modal-close-btn" aria-label="Close" onclick="window.closeModal('confirmModal')"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>
       <div class="modal-body" id="confirmModalBody"></div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" onclick="window.closeModal('confirmModal')">Close Window</button>
-        <button type="button" class="btn btn-primary" onclick="window.closeModal('confirmModal'); window.showToast('Direct confirmation recorded with facility desk', 'success');">Confirm &amp; Proceed</button>
+        <button type="button" class="btn btn-primary" onclick="window.closeModal('confirmModal'); window.showToast('Direct confirmation recorded with facility desk', 'success');">
+          <svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          Confirm &amp; Proceed
+        </button>
       </div>
     </div>
   </div>
@@ -715,7 +763,7 @@
     <div class="modal-dialog">
       <div class="modal-header">
         <h3>Connect Healthcare Facility</h3>
-        <button class="modal-close-btn" onclick="window.closeModal('facilityModal')">&times;</button>
+        <button type="button" class="modal-close-btn" aria-label="Close" onclick="window.closeModal('facilityModal')"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>
       <form id="facilityForm">
         <div class="modal-body">
@@ -760,8 +808,87 @@
     </div>
   </div>
 
+  <!-- =======================================================================
+       MODAL 6: DESTRUCTIVE ACTION CONFIRMATION (delete records)
+       ======================================================================= -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <h3 id="deleteModalTitle">Delete Record</h3>
+        <button type="button" class="modal-close-btn" aria-label="Close" id="deleteModalCloseBtn"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      </div>
+      <div class="modal-body delete-modal-body">
+        <span class="delete-warning-icon"><svg class="i" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>
+        <p id="deleteModalMessage" style="color: var(--slate-600); font-size: 14px;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="deleteCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="deleteConfirmBtn">
+          <svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete Permanently
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       SIGN-IN GATE (RBAC session)
+       ======================================================================= -->
+  <div id="authGate" class="auth-gate">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-logo-icon lg">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M2 12h20"/></svg>
+        </div>
+        <h1>THRIVE<span>&amp;CO</span></h1>
+        <p>Healthcare Resource Management System</p>
+      </div>
+
+      <div class="auth-inner">
+        <h2>Sign in to continue</h2>
+        <p class="auth-sub">Role-based access control is active. Sign in with your facility account to view and manage resources.</p>
+
+        <form id="loginForm" autocomplete="on">
+          <div class="form-group">
+            <label class="form-label" for="loginUserSelect">Account</label>
+            <div class="select-wrap">
+              <select id="loginUserSelect" class="form-control" required>
+                <option value="">Loading accounts...</option>
+              </select>
+              <svg class="i select-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="loginPassword">Password</label>
+            <div class="password-wrap">
+              <svg class="i pw-lead" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input type="password" id="loginPassword" class="form-control pw-input" placeholder="Enter password" autocomplete="current-password" required>
+              <button type="button" id="togglePassword" class="pw-toggle" aria-label="Show or hide password">
+                <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-block">
+            <svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span id="loginSubmitLabel">Sign in</span>
+          </button>
+
+          <div id="loginMessage" class="login-message" role="alert" hidden></div>
+        </form>
+
+        <div class="auth-demo">
+          <h4><svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg> Demo accounts</h4>
+          <div id="demoAccountChips" class="demo-chips"></div>
+          <p class="auth-hint">Demo accounts share the default password <code>thrive123</code> unless changed via <code>DEMO_USER_PASSWORD</code> in <code>.env</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST CONTAINER -->
-  <div id="toastContainer" class="toast-container"></div>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- FOOTER -->
   <footer class="site-footer">
@@ -774,6 +901,7 @@
   </footer>
 
   <!-- SCRIPT INCLUSIONS -->
+  <script src="./icons.js"></script>
   <script src="./api.js"></script>
   <script src="./app.js"></script>
 
@@ -790,6 +918,13 @@
     window.switchTabToAlerts = function() {
       const tabBtn = document.querySelector('.nav-item[data-tab="alerts"]');
       if (tabBtn) tabBtn.click();
+    };
+    window.copyApiResponse = function() {
+      const payload = document.getElementById('apiResponseJson');
+      if (!payload) return;
+      navigator.clipboard.writeText(payload.textContent)
+        .then(() => window.showToast('Copied JSON payload to clipboard', 'success'))
+        .catch(() => window.showToast('Clipboard copy failed in this browser', 'warning'));
     };
   </script>
 </body>
