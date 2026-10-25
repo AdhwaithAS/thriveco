@@ -140,7 +140,7 @@ insert demo data, so an empty database stays empty and existing rows are preserv
 
 ---
 
-## 2. Local demo without a cloud database (recommended for quick testing/viva)
+## 2. Local H2 database without a cloud database (recommended for quick testing/viva)
 
 The project includes an embedded H2 database. This runs with zero external setup:
 
